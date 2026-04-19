@@ -221,7 +221,10 @@ textarea.tall{min-height:160px}
           </div>
           <div class="form-group">
             <label>题目分值 <span class="required">*</span></label>
-            <div class="score-row"><input type="number" id="totalScore" value="6" min="2" max="20" onchange="updateStdTotal();updateScoreHint()"><span>分</span></div>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+              <div class="score-row"><input type="number" id="totalScore" value="6" min="2" max="20" onchange="updateStdTotal();updateScoreHint()"><span>分</span></div>
+              <div class="score-row" id="matRatioRow" style="padding-left:12px;border-left:2px solid var(--gray-200)"><input type="number" id="matRatio" value="40" min="0" max="100" step="5" onchange="updateScoreHint();updateCustomRefs()" style="width:72px"><span>% 材料分</span></div>
+            </div>
             <div style="font-size:11px;color:var(--gray-500);margin-top:4px" id="scoreHint">&#x1F4A1; 简答题建议6-8分 &#xB7; 小作文建议14分（情境4+知识6+能力5-1附加）</div>
           </div>
           <div class="form-group">
@@ -552,17 +555,19 @@ function checkMaterialUsage(answer,material){
 function escHtml(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 /* === 简答题引擎 === */
+function getMatRatio(){return(parseInt(document.getElementById("matRatio").value)||40)/100;}
+
 function genShortRef(question,material,totalScore,kps){
   var ptCount=Math.max(2,Math.floor(totalScore/2));
   var top=kps.slice(0,Math.min(ptCount+1,kps.length));
-  var refs=[],rem=totalScore;
+  var refs=[],rem=totalScore,mr=getMatRatio();
   for(var i=0;i<top.length;i++){
     if(rem<=0)break;
     var pts=top[i].corePoints||[];
     for(var j=0;j<Math.min(2,pts.length);j++){
       if(rem<=0)break;
       var s=Math.min(2,rem);
-      var kpS=Math.ceil(s*0.6),matS=s-kpS;
+      var kpS=Math.ceil(s*(1-mr)),matS=s-kpS;
       refs.push({point:pts[j],score:s,kpScore:kpS,matScore:matS,materialLink:extractMatCtx(material,top[i].matchedKeywords),topic:top[i].topic});
       rem-=s;
     }
@@ -613,8 +618,8 @@ function gradeShortAns(answer,refs,material,totalScore){
   var missed=[];for(var i=0;i<res.pointDetails.length;i++){if(res.pointDetails[i].earnedScore<res.pointDetails[i].maxScore)missed.push(res.pointDetails[i]);}
   if(missed.length)res.feedback.push("❌ 未能完全覆盖的得分点："+missed.map(function(p){return p.point;}).join("；"));
   var matMiss=[];for(var i=0;i<res.pointDetails.length;i++){if(res.pointDetails[i].kpEarned>0&&res.pointDetails[i].matEarned<res.pointDetails[i].matScore)matMiss.push(res.pointDetails[i]);}
-  if(matMiss.length)res.feedback.push("⚠️ "+matMiss.length+"个知识点答对但未结合材料，丢失了材料结合分（约40%）");
-  if(r<0.6){res.suggestions.push("答题技巧：先找材料关键词→对应教材知识点→做到'知识点+材料分析'一一对应");res.suggestions.push("注意：广州中考简答题仅答知识点不结合材料，最多得60%的分值");}
+  if(matMiss.length)res.feedback.push("\u26A0\uFE0F "+matMiss.length+"个知识点答对但未结合材料，丢失了材料结合分");
+  if(r<0.6){res.suggestions.push("\u7B54\u9898\u6280\u5DE7\uFF1A\u5148\u627E\u6750\u6599\u5173\u952E\u8BCD\u2192\u5BF9\u5E94\u6559\u6750\u77E5\u8BC6\u70B9\u2192\u505A\u5230\u2018\u77E5\u8BC6\u70B9+\u6750\u6599\u5206\u6790\u2019\u4E00\u4E00\u5BF9\u5E94");}
   if(matMiss.length>0)res.suggestions.push("材料结合技巧：在每个知识点后加上'材料中……体现了……'的句式");
   if(r<0.8)res.suggestions.push("提示：答案中要明确使用道法专业术语，如'依法治国''创新驱动'等");
   return res;
@@ -779,6 +784,7 @@ function switchType(type){
   document.getElementById("shortStdSection").style.display=type==="shortAnswer"?"block":"none";
   document.getElementById("essayStdSection").style.display=type==="essay"?"block":"none";
   document.getElementById("totalScore").value=type==="essay"?14:6;
+  document.getElementById("matRatioRow").style.display=type==="essay"?"none":"flex";
   updateStdTotal();
   updateScoreHint();
 }
@@ -790,7 +796,9 @@ function updateScoreHint(){
     var ds=getEssayDS(v);
     hintEl.textContent="\uD83D\uDCA1 小作文"+v+"分制：情境"+ds.s+"分 + 知识点"+ds.k+"分 + 能力"+ds.a+"分";
   }else{
-    hintEl.textContent="\uD83D\uDCA1 简答题"+v+"分 · 每个得分点=知识点(60%)+材料结合(40%)";
+    var mr=parseInt(document.getElementById("matRatio").value)||40;
+    var kr=100-mr;
+    hintEl.textContent="\uD83D\uDCA1 简答题"+v+"分 · 每个得分点=知识点("+kr+"%)+材料结合("+mr+"%)";
   }
 }
 
@@ -823,16 +831,19 @@ function updateStdTotal(){
   document.getElementById("stdTotalScore").textContent=total;
   document.getElementById("stdFullScore").textContent=document.getElementById("totalScore").value;
 }
+function updateCustomRefs(){
+  /* 当材料分比例变化时，更新自定义标准的kpScore/matScore显示（得分点本身分数不变） */
+}
 function hasCustomStd(){
   if(currentType==="shortAnswer"){for(var i=0;i<stdPoints.length;i++){if(stdPoints[i].point.trim())return true;}return false;}
   var el=document.getElementById("stdEssayAnswer");return el&&el.value.trim()?true:false;
 }
 function getCustomShortRef(){
-  var refs=[];
+  var refs=[],mr=getMatRatio();
   for(var i=0;i<stdPoints.length;i++){
     var p=stdPoints[i];
     if(!p.point.trim())continue;
-    var s=p.score||1,kpS=Math.ceil(s*0.6);
+    var s=p.score||1,kpS=Math.ceil(s*(1-mr));
     refs.push({point:p.point.trim(),score:s,kpScore:kpS,matScore:s-kpS,topic:"自定义标准",materialLink:""});
   }
   return refs;
@@ -966,7 +977,7 @@ function renderReport(report,kps){
   var h='<div class="score-display"><div class="score-circle '+cls+'"><span>'+meta.earnedScore+'</span><span class="label">/ '+meta.totalScore+'</span></div><div class="score-meta"><span class="level '+cls+'">'+meta.level+'</span>&nbsp;&nbsp;'+meta.type+' · 得分率 '+meta.percentage+'%&nbsp;&nbsp;'+meta.timestamp+'</div></div>';
 
   if(currentType==="shortAnswer"){
-    h+='<div class="detail-section"><h4><i class="fas fa-list-check" style="color:var(--primary)"></i> 逐点评分详情（知识点60% + 材料结合40%）</h4>';
+    h+='<div class="detail-section"><h4><i class="fas fa-list-check" style="color:var(--primary)"></i> 逐点评分详情（知识点'+Math.round((1-getMatRatio())*100)+'% + 材料结合'+Math.round(getMatRatio()*100)+'%）</h4>';
     h+='<table class="detail-table"><thead><tr><th>得分点</th><th>满分</th><th>得分</th><th>状态</th><th>说明</th></tr></thead><tbody>';
     var pds=grading.pointDetails||[];
     for(var i=0;i<pds.length;i++){
@@ -1037,7 +1048,7 @@ function renderReport(report,kps){
       var rp=refs[i];
       h+='<div class="ref-point"><strong>• '+escHtml(rp.point)+'</strong><span class="ref-score">'+rp.score+'分</span>';
       if(rp.topic)h+='<span style="font-size:11px;color:var(--gray-500);margin-left:8px">['+rp.topic+']</span>';
-      if(!useC)h+='<div style="font-size:11px;color:#065f46;margin-top:4px">评分细则：知识点('+rp.kpScore+'分，60%) + 材料结合('+rp.matScore+'分，40%)</div>';
+      if(!useC)h+='<div style="font-size:11px;color:#065f46;margin-top:4px">\u8BC4\u5206\u7EC6\u5219\uFF1A\u77E5\u8BC6\u70B9('+rp.kpScore+'\u5206\uFF0C'+Math.round((1-getMatRatio())*100)+'%) + \u6750\u6599\u7ED3\u5408('+rp.matScore+'\u5206\uFF0C'+Math.round(getMatRatio()*100)+'%)</div>';
       if(rp.materialLink)h+='<span class="ref-material">📎 材料关联：'+escHtml(rp.materialLink)+'</span>';
       h+='</div>';
     }
