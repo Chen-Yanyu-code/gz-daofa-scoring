@@ -962,6 +962,9 @@ function doColOCR(input,colIdx){
       var lines=text.split("\n"),cleaned=[];
       for(var i=0;i<lines.length;i++){var l=lines[i].trim();if(l.length>1)cleaned.push(l);}
       var colText=cleaned.join("\n");
+      // 规范化OCR识别：数字水平→中文水平
+      colText=colText.replace(/水平\s*4/g,"水平四").replace(/水平\s*3/g,"水平三").replace(/水平\s*2/g,"水平二").replace(/水平\s*1/g,"水平一");
+      colText=colText.replace(/(\d+)\s*~\s*(\d+)\s*分/g,function(m,a,b){return a+"～"+b+"分";}); // 规范化分数范围
       _colOcrData[colIdx]=colText;
       _colOcrDone[colIdx]=true;
       mergeColOcrToCriteria();
