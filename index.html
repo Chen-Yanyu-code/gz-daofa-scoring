@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>广州市中考道法智能批改系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<style>
+:root{--primary:#1a56db;--primary-light:#eff6ff;--primary-dark:#1e3a8a;--accent:#f59e0b;--success:#10b981;--danger:#ef4444;--warning:#f59e0b;--gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-500:#6b7280;--gray-700:#374151;--gray-900:#111827;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);--shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',-apple-system,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;color:var(--gray-900)}
+.container{max-width:1320px;margin:0 auto;padding:20px}
+.header{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:var(--radius);padding:24px 32px;margin-bottom:24px;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:16px}
+.header-icon{width:56px;height:56px;background:linear-gradient(135deg,var(--primary),#7c3aed);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff}
+.header h1{font-size:22px;font-weight:700}
+.header p{font-size:13px;color:var(--gray-500);margin-top:4px}
+.main-layout{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;transition:box-shadow .2s}
+.card:hover{box-shadow:var(--shadow-lg)}
+.card-header{padding:16px 24px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
+.card-header i{color:var(--primary);font-size:18px}
+.card-body{padding:24px}
+.tabs{display:flex;gap:4px;background:var(--gray-100);padding:4px;border-radius:10px;margin-bottom:20px}
+.tab-btn{flex:1;padding:10px 16px;border:none;border-radius:8px;background:0 0;font-size:14px;font-weight:500;color:var(--gray-500);cursor:pointer;transition:all .2s;font-family:inherit}
+.tab-btn.active{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.tab-btn:hover:not(.active){color:var(--gray-700)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:500;color:var(--gray-700);margin-bottom:6px}
+.required{color:var(--danger)}
+textarea,select,input[type=number],input[type=text]{width:100%;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:inherit;color:var(--gray-900);transition:border-color .2s,box-shadow .2s;resize:vertical;background:#fff}
+textarea:focus,select:focus,input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,86,219,.1)}
+textarea{min-height:100px}
+textarea.tall{min-height:160px}
+.score-row{display:flex;align-items:center;gap:12px}
+.score-row input[type=number]{width:80px;text-align:center}
+.score-row span{font-size:14px;color:var(--gray-500)}
+.upload-area{border:2px dashed var(--gray-300);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-50);position:relative}
+.upload-area:hover,.upload-area.dragover{border-color:var(--primary);background:var(--primary-light)}
+.upload-area i{font-size:28px;color:var(--gray-300);margin-bottom:8px;display:block}
+.upload-area.dragover i{color:var(--primary)}
+.upload-area p{font-size:13px;color:var(--gray-500)}
+.upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-preview{margin-top:12px;max-width:100%;border-radius:8px;max-height:200px;object-fit:contain}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,var(--primary),#4f46e5);color:#fff;box-shadow:0 2px 4px rgba(26,86,219,.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,86,219,.4)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.btn-secondary{background:var(--gray-100);color:var(--gray-700)}
+.btn-secondary:hover{background:var(--gray-200)}
+.btn-group{display:flex;gap:12px;margin-top:20px}
+.btn-group .btn{flex:1;justify-content:center}
+.loading{display:none;text-align:center;padding:40px}
+.loading.active{display:block}
+.spinner{width:40px;height:40px;border:3px solid var(--gray-200);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{color:var(--gray-500);font-size:14px}
+.report{display:none}
+.report.active{display:block}
+.score-display{text-align:center;padding:24px;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border-radius:var(--radius);margin-bottom:20px}
+.score-circle{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 12px;font-size:28px;font-weight:700;color:#fff;box-shadow:0 4px 15px rgba(0,0,0,.15)}
+.score-circle.excellent{background:linear-gradient(135deg,#10b981,#059669)}
+.score-circle.good{background:linear-gradient(135deg,#3b82f6,#2563eb)}
+.score-circle.fair{background:linear-gradient(135deg,#f59e0b,#d97706)}
+.score-circle.need-work{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.score-circle .label{font-size:12px;font-weight:500;opacity:.9}
+.score-meta{font-size:13px;color:var(--gray-500)}
+.score-badge{display:inline-flex;padding:2px 8px;border-radius:6px;font-weight:600;font-size:12px}
+.score-badge.full{background:#d1fae5;color:#065f46}
+.score-badge.half{background:#fef3c7;color:#92400e}
+.score-badge.zero{background:#fee2e2;color:#991b1b}
+.level{display:inline-block;padding:2px 12px;border-radius:20px;font-weight:600;font-size:12px}
+.level.excellent{background:#d1fae5;color:#065f46}
+.level.good{background:#dbeafe;color:#1e40af}
+.level.fair{background:#fef3c7;color:#92400e}
+.level.need-work{background:#fee2e2;color:#991b1b}
+.detail-section{margin-bottom:20px}
+.detail-section h4{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;color:var(--gray-700)}
+.detail-table{width:100%;border-collapse:collapse;font-size:13px}
+.detail-table th{background:var(--gray-50);padding:10px 14px;text-align:left;font-weight:600;color:var(--gray-700);border-bottom:2px solid var(--gray-200)}
+.detail-table td{padding:10px 14px;border-bottom:1px solid var(--gray-100);vertical-align:top}
+.detail-table tr:hover td{background:var(--gray-50)}
+.detail-table .sub-row td{background:#f0f9ff;padding:6px 14px 6px 40px;font-size:12px;color:var(--gray-700);border-bottom:1px dashed var(--gray-200)}
+.detail-table .sub-row:hover td{background:#e0f2fe}
+.feedback-list,.suggestion-list{list-style:none;padding:0}
+.feedback-list li,.suggestion-list li{padding:10px 14px;font-size:13px;line-height:1.6;border-radius:8px;margin-bottom:8px}
+.feedback-list li{background:var(--gray-50)}
+.suggestion-list li{background:#fffbeb;border-left:3px solid var(--warning)}
+.reference-box{background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;border-radius:var(--radius);padding:20px}
+.ref-point{padding:10px 0;border-bottom:1px solid #bbf7d0}
+.ref-point:last-child{border-bottom:none}
+.ref-score{display:inline-block;background:#059669;color:#fff;padding:1px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-left:8px}
+.ref-material{display:block;font-size:12px;color:#065f46;margin-top:4px;font-style:italic}
+.essay-ref-structure{display:grid;gap:16px}
+.essay-part{border:1px solid var(--gray-200);border-radius:8px;padding:16px}
+.essay-part-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.essay-part-header .part-title{font-weight:600;font-size:14px}
+.essay-part-header .part-ratio{font-size:12px;color:var(--primary);font-weight:500}
+.dim-bar-wrap{margin-bottom:12px}
+.dim-bar-header{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.dim-bar-header .dim-name{font-weight:500}
+.dim-bar-header .dim-score{color:var(--gray-500)}
+.dim-bar{height:8px;background:var(--gray-100);border-radius:4px;overflow:hidden}
+.dim-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.dim-bar-fill.high{background:linear-gradient(90deg,#10b981,#34d399)}
+.dim-bar-fill.mid{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.dim-bar-fill.low{background:linear-gradient(90deg,#ef4444,#f87171)}
+.kp-tags{display:flex;flex-wrap:wrap;gap:4px}
+.kp-tag{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;background:var(--primary-light);color:var(--primary)}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--gray-900);color:#fff;padding:12px 24px;border-radius:8px;font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:fadeInUp .3s ease}
+@keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.ocr-result{margin-top:8px;padding:8px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:12px;color:#92400e;display:none}
+.collapse-toggle{display:flex;align-items:center;gap:8px;padding:12px 0;cursor:pointer;font-size:13px;font-weight:600;color:var(--primary);user-select:none}
+.collapse-toggle:hover{color:var(--primary-dark)}
+.collapse-toggle i{transition:transform .2s}
+.collapse-toggle.open i{transform:rotate(90deg)}
+.collapse-body{display:none;padding:0 0 4px}
+.collapse-body.open{display:block}
+.std-answer-input{margin-bottom:12px}
+.std-answer-input .scoring-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.std-answer-input .scoring-row .scoring-idx{width:24px;height:24px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.std-answer-input .scoring-row input{flex:1}
+.std-answer-input .scoring-row input[type=number]{width:60px;flex:none;text-align:center}
+.std-answer-input .scoring-row .remove-point{width:28px;height:28px;border:none;border-radius:6px;background:#fee2e2;color:#ef4444;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.std-answer-input .scoring-row .remove-point:hover{background:#fecaca}
+.add-point-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px dashed var(--primary);border-radius:8px;background:var(--primary-light);color:var(--primary);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s}
+.add-point-btn:hover{background:#dbeafe;border-style:solid}
+.custom-std-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#dbeafe;color:var(--primary);margin-left:8px}
+.std-total-row{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:var(--gray-50);border-radius:6px;font-size:13px}
+.std-total-row strong{color:var(--primary)}
+.dim-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.dim-card{padding:14px;border-radius:10px;text-align:center;border:1.5px solid var(--gray-200)}
+.dim-card .dim-card-name{font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:6px}
+.dim-card .dim-card-score{font-size:24px;font-weight:700}
+.dim-card .dim-card-max{font-size:12px;color:var(--gray-500)}
+.dim-card.sit{background:#f0fdf4;border-color:#bbf7d0}
+.dim-card.sit .dim-card-score{color:#059669}
+.dim-card.kno{background:#eff6ff;border-color:#bfdbfe}
+.dim-card.kno .dim-card-score{color:#2563eb}
+.dim-card.abi{background:#fef3c7;border-color:#fde68a}
+.dim-card.abi .dim-card-score{color:#d97706}
+.sub-dim-list{margin-top:8px}
+.sub-dim-item{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:var(--gray-700);border-bottom:1px dotted var(--gray-200)}
+.sub-dim-item:last-child{border-bottom:none}
+.sub-dim-item .sub-label{flex:1}
+.sub-dim-item .sub-score{font-weight:600;margin-left:8px}
+@media print{body{background:#fff}.header,.tabs,.btn-group,.form-group,.collapse-toggle,.collapse-body{display:none}.report{display:block!important}.main-layout{grid-template-columns:1fr}.card{box-shadow:none;border:1px solid var(--gray-200)}}
+@media(max-width:768px){.main-layout{grid-template-columns:1fr}.container{padding:12px}.header h1{font-size:18px}.dim-summary{grid-template-columns:1fr}}
+/* === 题库练习 === */
+.page-switch{display:flex;gap:4px;background:var(--gray-100);padding:4px;border-radius:10px;margin-bottom:20px}
+.page-btn{flex:1;padding:10px 16px;border:none;border-radius:8px;background:0 0;font-size:14px;font-weight:500;color:var(--gray-500);cursor:pointer;transition:all .2s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+.page-btn.active{background:#fff;color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.page-btn:hover:not(.active){color:var(--gray-700)}
+.qb-page{display:none}.qb-page.active{display:block}
+.filter-bar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.filter-bar select,.filter-bar input{padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-size:13px;font-family:inherit;background:#fff;min-width:120px}
+.filter-bar select:focus,.filter-bar input:focus{outline:none;border-color:var(--primary)}
+.filter-bar .search-input{flex:1;min-width:200px}
+.qb-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;transition:box-shadow .2s;margin-bottom:16px;cursor:pointer;border:2px solid transparent}
+.qb-card:hover{box-shadow:var(--shadow-lg);border-color:var(--primary-light)}
+.qb-card.selected{border-color:var(--primary);background:var(--primary-light)}
+.qb-card-header{padding:14px 20px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.qb-card-header .qb-tag{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.qb-tag.region{background:#ede9fe;color:#7c3aed}
+.qb-tag.year{background:#dbeafe;color:#2563eb}
+.qb-tag.type{background:#fef3c7;color:#d97706}
+.qb-tag.topic{background:#f0fdf4;color:#059669}
+.qb-card-title{font-size:15px;font-weight:600;flex:1;min-width:200px}
+.qb-card-body{padding:16px 20px}
+.qb-material{font-size:13px;color:var(--gray-700);background:var(--gray-50);padding:12px 16px;border-radius:8px;margin-bottom:10px;line-height:1.6;border-left:3px solid var(--primary)}
+.qb-question{font-size:14px;font-weight:500;margin-bottom:8px;line-height:1.6}
+.qb-card-footer{padding:12px 20px;border-top:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.qb-card-footer .qb-score{font-size:13px;color:var(--gray-500)}
+.qb-card-footer .qb-score strong{color:var(--primary)}
+.qb-actions{display:flex;gap:8px}
+.qb-actions .btn{padding:6px 14px;font-size:12px}
+.qb-empty{text-align:center;padding:60px 20px;color:var(--gray-500)}
+.qb-empty i{font-size:48px;color:var(--gray-200);margin-bottom:16px;display:block}
+.qb-count{font-size:13px;color:var(--gray-500);padding:8px 0}
+.qb-count strong{color:var(--primary)}
+.qb-detail-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;justify-content:center;align-items:center;padding:20px}
+.qb-detail-modal.active{display:flex}
+.qb-detail-content{background:#fff;border-radius:var(--radius);max-width:800px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.25)}
+.qb-detail-top{padding:20px 24px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1;border-radius:var(--radius) var(--radius) 0 0}
+.qb-detail-top h3{font-size:18px;font-weight:700}
+.qb-detail-close{width:36px;height:36px;border:none;border-radius:50%;background:var(--gray-100);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.qb-detail-close:hover{background:var(--gray-200)}
+.qb-detail-body{padding:24px}
+.qb-answer-section{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px 20px;margin-top:16px}
+.qb-answer-section h4{font-size:14px;font-weight:600;color:#059669;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.qb-answer-section .ref-point{padding:8px 0;border-bottom:1px dotted #bbf7d0;font-size:13px;line-height:1.7}
+.qb-answer-section .ref-point:last-child{border-bottom:none}
+.qb-answer-section .ref-score{background:#059669;color:#fff;padding:1px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-left:8px}
+.qb-criteria-section{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px 20px;margin-top:12px}
+.qb-criteria-section h4{font-size:14px;font-weight:600;color:#d97706;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.qb-criteria-section p{font-size:13px;line-height:1.7;color:#92400e}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-icon">&#x1F393;</div>
+    <div>
+      <h1>广州市中考道法智能批改系统</h1>
+      <p>人教版初中道德与法治 &#xB7; 简答题 &amp; 小作文 &#xB7; 广州中考评分标准 &#xB7; 图片OCR识别</p>
+    </div>
+  </div>
+  <div class="page-switch">
+    <button class="page-btn active" onclick="switchPage('grading')"><i class="fas fa-check-double"></i> 智能批改</button>
+    <button class="page-btn" onclick="switchPage('questionbank')"><i class="fas fa-book-open"></i> 题库练习</button>
+  </div>
+  <div class="qb-page active" id="pageGrading">
+  <div class="main-layout">
+    <div>
+      <div class="card">
+        <div class="card-header"><i class="fas fa-edit"></i><span>题目与答案录入</span></div>
+        <div class="card-body">
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchType('shortAnswer')"><i class="fas fa-list-check"></i> 简答题</button>
+            <button class="tab-btn" onclick="switchType('essay')"><i class="fas fa-pen-fancy"></i> 小作文</button>
+          </div>
+          <div class="form-group">
+            <label>题目分值 <span class="required">*</span></label>
+            <div class="score-row"><input type="number" id="totalScore" value="6" min="2" max="20" onchange="updateStdTotal();updateScoreHint()"><span>分</span></div>
+            <div style="font-size:11px;color:var(--gray-500);margin-top:4px" id="scoreHint">&#x1F4A1; 简答题建议6-8分 &#xB7; 小作文建议14分（情境4+知识6+能力5-1附加）</div>
+          </div>
+          <div class="form-group">
+            <label>给定材料 <span class="required">*</span></label>
+            <textarea id="material" placeholder="粘贴或输入题目中的给定材料...&#10;&#x26A0;&#xFE0F; 材料对评分至关重要！简答题和小作文均需结合材料" rows="4"></textarea>
+            <div class="upload-area" style="margin-top:8px;padding:16px">
+              <input type="file" accept="image/*" onchange="previewAndOCR(this,'mPreview','material')">
+              <i class="fas fa-file-lines"></i>
+              <p>&#x1F4C4; 上传材料图片（OCR自动识别）</p>
+              <img class="upload-preview" id="mPreview" style="display:none">
+              <div class="ocr-result" id="mOcrResult"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>题目内容 <span class="required">*</span></label>
+            <textarea id="question" class="tall" placeholder="输入题目内容..."></textarea>
+            <div class="upload-area" style="margin-top:8px;padding:16px">
+              <input type="file" accept="image/*" onchange="previewAndOCR(this,'qPreview','question')">
+              <i class="fas fa-camera"></i>
+              <p>&#x1F4F7; 上传题目图片（OCR自动识别）</p>
+              <img class="upload-preview" id="qPreview" style="display:none">
+              <div class="ocr-result" id="qOcrResult"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>学生答案 <span class="required">*</span></label>
+            <textarea id="studentAnswer" class="tall" placeholder="输入学生作答内容..."></textarea>
+            <div class="upload-area" style="margin-top:8px;padding:16px">
+              <input type="file" accept="image/*" onchange="previewAndOCR(this,'aPreview','studentAnswer')">
+              <i class="fas fa-pen-to-square"></i>
+              <p>&#x270D;&#xFE0F; 上传答案图片（OCR自动识别）</p>
+              <img class="upload-preview" id="aPreview" style="display:none">
+              <div class="ocr-result" id="aOcrResult"></div>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <div class="collapse-toggle" onclick="toggleStdAnswer()" id="stdToggle">
+              <i class="fas fa-chevron-right"></i>
+              <i class="fas fa-key" style="color:var(--accent)"></i>
+              <span>手动录入标准答案与评分标准</span>
+              <span style="font-size:11px;color:var(--gray-500);font-weight:400">（选填）</span>
+            </div>
+            <div class="collapse-body" id="stdBody">
+              <div style="padding:16px;border:1.5px solid var(--gray-200);border-radius:10px;background:var(--gray-50)">
+                <div style="font-size:12px;color:var(--gray-500);margin-bottom:12px">&#x1F4A1; 录入后系统将按您设定的标准批改；留空则使用智能生成的标准</div>
+                <div id="shortStdSection">
+                  <label style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:8px;display:block">简答题 - 逐点录入得分点与分值</label>
+                  <div class="std-answer-input" id="stdPointsList"></div>
+                  <div class="std-total-row">已设 <strong id="stdPointCount">0</strong> 个得分点，合计 <strong id="stdTotalScore">0</strong> 分（满分 <strong id="stdFullScore">6</strong> 分）</div>
+                  <button class="add-point-btn" onclick="addStdPoint()" style="margin-top:10px"><i class="fas fa-plus"></i> 添加得分点</button>
+                </div>
+                <div id="essayStdSection" style="display:none">
+                  <label style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:8px;display:block">小作文 - 标准答案全文</label>
+                  <textarea id="stdEssayAnswer" class="tall" placeholder="输入官方标准答案全文..." style="background:#fff;margin-bottom:12px"></textarea>
+                  <label style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:8px;display:block">评分标准细则</label>
+                  <textarea id="stdEssayCriteria" placeholder="例如：&#10;【情境运用4分】提取材料信息(2分)+情境对应(2分)&#10;【知识点运用6分】准确(2分)+完整(2分)+多样(2分)&#10;【能力维度5分】结构(2分)+语言(2分)+价值(1分)" style="min-height:120px;background:#fff"></textarea>
+                </div>
+                <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-200)">
+                  <label style="font-size:12px;font-weight:600;color:var(--gray-700);margin-bottom:8px;display:block">&#x1F4CE; 或上传标准答案/评分标准图片</label>
+                  <div class="upload-area" style="padding:14px;border-color:#fde68a">
+                    <input type="file" accept="image/*" onchange="previewAndOCR(this,'stdPreview','stdOcrField')">
+                    <i class="fas fa-file-image" style="color:#f59e0b"></i>
+                    <p style="color:var(--gray-500);font-size:12px">上传标准答案或评分标准图片</p>
+                    <img class="upload-preview" id="stdPreview" style="display:none">
+                    <div class="ocr-result" id="stdOcrResult"></div>
+                  </div>
+                </div>
+                <div style="margin-top:12px"><button class="btn btn-secondary" style="padding:8px 16px;font-size:12px" onclick="clearStdAnswer()"><i class="fas fa-eraser"></i> 清除自定义标准</button></div>
+              </div>
+            </div>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-secondary" onclick="analyzePoints()"><i class="fas fa-search"></i> 分析考点</button>
+            <button class="btn btn-primary" onclick="doGrade()" id="gradeBtn"><i class="fas fa-check-double"></i> 智能批改</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card loading" id="loadingCard"><div class="spinner"></div><p>正在批改中，请稍候...</p></div>
+      <div class="card" id="kpCard" style="display:none">
+        <div class="card-header"><i class="fas fa-lightbulb"></i><span>考点分析</span></div>
+        <div class="card-body"><div id="kpContent"></div></div>
+      </div>
+      <div class="card report" id="reportCard">
+        <div class="card-header"><i class="fas fa-clipboard-check"></i><span>批改报告</span><span style="margin-left:auto"><button class="btn btn-secondary" style="padding:6px 12px;font-size:12px" onclick="window.print()"><i class="fas fa-print"></i> 打印</button></span></div>
+        <div class="card-body"><div id="reportContent"></div></div>
+      </div>
+    </div>
+  </div>
+  </div><!-- end pageGrading -->
+  <div class="qb-page" id="pageQB">
+    <div class="card">
+      <div class="card-header"><i class="fas fa-book-open"></i><span>各地中考真题题库</span><span style="margin-left:auto;font-size:12px;color:var(--gray-500)">选择题目后可直接导入智能批改</span></div>
+      <div class="card-body">
+        <div class="filter-bar">
+          <select id="filterRegion" onchange="filterQuestions()"><option value="">全部地区</option><option value="广州">广州</option><option value="广东">广东</option><option value="北京">北京</option><option value="安徽">安徽</option><option value="四川">四川</option><option value="青海">青海</option><option value="山东">山东</option><option value="云南">云南</option><option value="重庆">重庆</option><option value="吉林">吉林</option><option value="江苏">江苏</option><option value="海南">海南</option><option value="黑龙江">黑龙江</option><option value="内蒙古">内蒙古</option></select>
+          <select id="filterType" onchange="filterQuestions()"><option value="">全部题型</option><option value="简答题">简答题</option><option value="情景探究">情景探究</option><option value="材料分析">材料分析</option><option value="小作文">小作文</option></select>
+          <select id="filterTopic" onchange="filterQuestions()"><option value="">全部主题</option><option value="生命安全">生命安全</option><option value="法治">法治</option><option value="责任">责任担当</option><option value="宪法">宪法</option><option value="民族团结">民族团结</option><option value="创新">创新</option><option value="生态文明">生态文明</option><option value="传统文化">传统文化</option><option value="国家安全">国家安全</option><option value="社会主义核心价值观">核心价值观</option></select>
+          <input type="text" class="search-input" id="filterSearch" placeholder="&#x1F50D; 搜索题目关键词..." oninput="filterQuestions()">
+        </div>
+        <div class="qb-count" id="qbCount"></div>
+        <div id="qbList"></div>
+      </div>
+    </div>
+  </div><!-- end pageQB -->
+  <!-- 题目详情弹窗 -->
+  <div class="qb-detail-modal" id="qbModal">
+    <div class="qb-detail-content">
+      <div class="qb-detail-top">
+        <h3 id="qbModalTitle">题目详情</h3>
+        <button class="qb-detail-close" onclick="closeQBModal()">&times;</button>
+      </div>
+      <div class="qb-detail-body" id="qbModalBody"></div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+/* === 停用词 === */
+var SW=new Set("是 的 了 在 和 与 对 从 中 为 有 要 这 那 也 都 而 但 或 能 会 可 将 所 其 就 之 等 被 把 到 给 让 用 以 及 又 如 因 于 还 去 来 过 下 上 不 没 很 最 已 更 比 同 个 年 月 日 时 分 秒 号 种 家 人 大 小 多 少 新 好 出 一 二 三 四 五 六 七 八 九 十 百 千 万".split(" "));
+
+/* === 同义词映射（道法领域） === */
+var SYN_MAP={
+"依法治国":["依法治理","以法治国","法治建设","厉行法治","全面依法治国","建设法治国家"],
+"法治":["法制","法治建设","法治国家","法治社会"],
+"宪法":["根本法","国家根本大法"],
+"法律":["法规","法令"],
+"民主":["人民当家作主","人民民主"],
+"权利":["权益","合法权利"],
+"义务":["责任担当","法定义务","应尽义务"],
+"创新":["革新","创造","改革创新","自主创新"],
+"创新驱动":["创新引领","创新引领发展"],
+"科技创新":["技术创新","科技革新"],
+"改革":["变革","革新"],
+"开放":["对外开放","扩大开放"],
+"发展":["推动发展","促进发展"],
+"社会主义":["中国特色社会主义"],
+"共同富裕":["共同致富","缩小贫富差距","缩小差距","共享发展成果"],
+"公平正义":["社会公平","公平公正","维护公平","促进公平"],
+"生态文明":["生态建设","生态保护"],
+"环境保护":["环保","保护环境","治理污染"],
+"绿色发展":["绿色低碳","绿色经济","可持续发展"],
+"可持续发展":["永续发展","长远发展"],
+"绿水青山":["生态保护","生态环境"],
+"中国梦":["民族复兴","伟大复兴","强国梦"],
+"民族复兴":["民族振兴","国家振兴"],
+"民族精神":["爱国主义精神","中国精神"],
+"爱国主义":["爱国","爱国情怀","家国情怀"],
+"民族团结":["民族团结进步","各民族共同发展"],
+"传统文化":["中华传统文化","中华优秀传统文化","中华文化"],
+"文化自信":["增强文化自信","坚定文化自信"],
+"文化传承":["传承文化","弘扬传统文化"],
+"国家安全":["维护安全","国家安全观","总体安全"],
+"国家利益":["国家核心利益","维护国家利益"],
+"社会责任":["承担责任","社会担当","担当责任"],
+"奉献":["无私奉献","默默奉献","奉献精神"],
+"合作共赢":["互利共赢","合作互利","互利合作"],
+"人类命运共同体":["命运共同体","全球治理","国际秩序"],
+"和平发展":["和平崛起"],
+"对外开放":["扩大开放","坚持开放"],
+"尊重":["尊敬","重视"],
+"保护":["维护","保障","捍卫"],
+"维护":["保护","捍卫","保障"],
+"促进":["推动","推进","助力"],
+"推动":["促进","推进","驱动"],
+"坚持":["坚定不移","坚定"],
+"培养":["培育","养成","塑造"],
+"树立":["建立","确立","塑造"],
+"增强":["加强","提升","提高"],
+"提高":["增强","加强","提升"],
+"加强":["增强","提升","强化"],
+"弘扬":["传承","发扬","传播"],
+"践行":["实践","落实","贯彻"],
+"贯彻":["落实","执行","实施"],
+"落实":["贯彻","执行","实施"],
+"履行":["执行","承担"],
+"保障":["保护","维护","确保"],
+"实现":["达成","完成","做到"],
+"青少年":["中学生","我们","青年","青年一代","新时代青年","未成年人"],
+"公民":["人民群众","人们","每个人","大家"],
+"人民":["民众","群众","老百姓"],
+"监督":["监督权","舆论监督","民主监督"],
+"基本国策":["国家政策","国家战略","国家方针"],
+"劳动":["劳动权","劳动教育"],
+"教育":["受教育权","学习"],
+"自由":["人身自由","言论自由"],
+"平等":["法律面前人人平等","公平"],
+"公正":["公平正义","正义","公道"],
+"和谐":["和平","融洽"],
+"核心":["中心","关键","重点"],
+"关键":["核心","重要","要害"],
+"重要":["关键","重大","要紧"],
+"影响":["作用","意义"],
+"意义":["价值","作用","重要性"],
+"价值":["意义","作用","重要性"],
+"作用":["影响","效果","功能"],
+"必须":["应该","应当","需要","一定要"],
+"应该":["必须","应当","需要","理应"],
+"需要":["必须","应当","要"],
+"有利于":["有助于","有益于","促进","推动"],
+"有助于":["有利于","有益于"],
+"权利和义务":["权利与义务","权利义务一致","统一"],
+"科学立法":["完善法律","健全法律"],
+"严格执法":["加强执法","规范执法"],
+"公正司法":["司法公正","公平司法"],
+"全民守法":["自觉守法","遵纪守法"],
+"依法行政":["政府依法","法治政府"],
+"法治政府":["法治国家","法治社会"],
+"法律面前人人平等":["法律平等","人人平等"],
+"根本法":["最高法律","宪法"],
+"根本制度":["基本制度","社会制度"],
+"社会主义核心价值观":["核心价值观","价值观"],
+"全过程人民民主":["协商民主","人民民主"],
+"以人民为中心":["为人民服务","人民至上"],
+"人权":["人的权利","基本人权"],
+"知识产权":["专利权","著作权","商标权"],
+"低碳":["节能减排","绿色生活"],
+"节约资源":["节约能源","节能降耗"],
+"资源":["能源","物资"],
+"环境":["生态","大自然"],
+"自然":["生态","环境","大自然"],
+"社会":["社区","群众"]
+};
+var SYN_GROUPS=[];
+(function(){var seen=new Set();var keys=Object.keys(SYN_MAP);for(var i=0;i<keys.length;i++){var canonical=keys[i];if(!seen.has(canonical)){var syns=SYN_MAP[canonical]||[];var grp=new Set();grp.add(canonical);for(var j=0;j<syns.length;j++)grp.add(syns[j]);var arr=[];grp.forEach(function(w){arr.push(w);});SYN_GROUPS.push(arr);grp.forEach(function(w){seen.add(w);});}}})();
+
+/* === 知识库 === */
+var KB={grade7:{"成长的节拍":{kw:["中学时代","新起点","学习","成长","自我认识"],pts:["中学时代是人生发展的重要阶段","学习不仅是获取知识，更是学会做人做事","正确认识自我，扬长避短"]},"友谊的天空":{kw:["友谊","交友","网络交友","真正的朋友"],pts:["友谊是平等的、双向的","真正的友谊能共享快乐、分担痛苦","网络交友需保持警惕，注意安全","处理竞争与友谊关系，既合作又竞争"]},"师长情谊":{kw:["师生关系","尊师","沟通","代际差异","父母"],pts:["师生关系是人生中重要的关系之一","尊重老师是中华民族的传统美德","主动沟通是化解师生矛盾的有效途径","父母的爱是无私的，应体谅父母"]},"生命的思考":{kw:["生命","敬畏生命","珍爱生命","生命价值","尊重生命"],pts:["生命是独特的，每个生命都有其存在的意义和价值","敬畏生命要从关爱自身生命开始","生命价值在于创造和奉献","珍视生命，反对任何形式的暴力"]}},grade8:{"走进社会生活":{kw:["社会","网络","社会化","公共秩序"],pts:["人是社会的动物，需要在社会中生活和成长","网络丰富了社会生活，但也带来挑战","网络谣言危害社会，要做信息甄别","维护公共秩序，人人有责"]},"遵守社会规则":{kw:["规则","秩序","自由","规则作用","维护规则","社会规则"],pts:["规则是人们生活的基础保障","自由与规则密不可分，自由是在规则约束下的自由","维护规则需要他律和自律相结合","良好的社会秩序是人民安居乐业的保障"]},"勇担社会责任":{kw:["责任","担当","奉献","志愿者","亲社会行为"],pts:["每个人都承担着多种社会角色，对应不同责任","承担责任需要付出代价，但这是成长的必要过程","积极参与社会公益，培养亲社会行为","强化责任意识，做负责任的公民"]},"维护国家利益":{kw:["国家利益","爱国主义","国家安全","民族精神","国家统一"],pts:["国家利益高于一切，个人利益服从国家利益","爱国主义是中华民族精神的核心","维护国家安全是每个公民的义务","国家统一、民族团结是中华民族振兴的保障"]},"理解权利义务":{kw:["权利","义务","公民","宪法","法律","基本权利"],pts:["公民的权利和义务是一致的，统一的","行使权利不得超越法律界限","履行义务是公民的责任担当","宪法保障公民的基本权利"]}},grade9:{"富强与创新":{kw:["创新","科技","创新驱动","改革创新","发展动力"],pts:["创新是引领发展的第一动力","科技创新是国家竞争力的核心","大众创业、万众创新","尊重知识产权，营造良好创新环境","建设创新型国家是实现中华民族伟大复兴的战略选择"]},"民主与法治":{kw:["民主","法治","依法治国","宪法","法律权威","法治建设"],pts:["民主是人民当家作主，保障人民权益的制度安排","依法治国是国家治理的基本方式","宪法是国家的根本法，具有最高法律效力","法律面前人人平等","全面推进依法治国，建设法治中国"]},"文明与家园":{kw:["生态文明","环境保护","绿色发展","可持续发展","人与自然","绿水青山"],pts:["建设生态文明是实现可持续发展的必由之路","保护环境是每个公民的责任","绿水青山就是金山银山","坚持节约资源和保护环境的基本国策","推动绿色低碳生活方式"]},"和谐与梦想":{kw:["中国梦","民族复兴","社会主义","共同富裕"],pts:["中国梦是中华民族伟大复兴的梦","实现中国梦需要全体中国人民共同奋斗","共同富裕是社会主义的本质要求","中国特色社会主义道路是实现民族复兴的正确道路"]},"世界舞台上的中国":{kw:["中国外交","人类命运共同体","全球治理","对外开放","和平发展","合作共赢"],pts:["构建人类命运共同体是中国外交的重要理念","中国坚持走和平发展道路","中国积极参与全球治理，承担大国责任","坚持对外开放基本国策，推动互利共赢","坚决维护国家主权和领土完整"]}},gzHF:{"依法治国":{yrs:[2020,2021,2022,2023,2024],kw:["依法治国","法治","宪法","法律面前人人平等","法治建设","依法行政"],pts:["全面推进依法治国的重要性","依法治国的措施","公民应依法行使权利，履行义务"]},"创新发展":{yrs:[2021,2022,2023,2024],kw:["创新","科技自立自强","创新驱动","知识产权","核心技术","科教兴国","人才强国"],pts:["创新的重要性","国家支持创新的举措","青少年如何培养创新精神"]},"生态文明":{yrs:[2020,2021,2022,2023],kw:["绿色发展","生态文明","人与自然和谐","绿水青山","可持续发展","低碳"],pts:["生态文明建设的意义","绿色发展的具体做法","公民保护环境的责任"]},"爱国主义与民族精神":{yrs:[2020,2021,2022,2024],kw:["中华民族精神","爱国主义","民族团结","传统文化","文化自信","文化传承"],pts:["弘扬民族精神的意义","民族精神的内涵","青少年如何弘扬民族精神"]},"共同富裕与社会公平":{yrs:[2022,2023,2024],kw:["共同富裕","社会公平正义","第三次分配","缩小贫富差距","社会保障"],pts:["共同富裕的内涵与意义","实现共同富裕的途径","青少年的责任与担当"]},"中国梦":{yrs:[2020,2021,2022,2023,2024],kw:["中华民族伟大复兴","百年奋斗目标","实现中国梦","强国建设","现代化"],pts:["中国梦的内涵","实现中国梦的道路","青少年如何为实现中国梦贡献力量"]}}};
+
+/* === 工具函数 === */
+function extractKP(text){
+  var lower=text.toLowerCase(),matched=[];
+  var sections=[["七年级",KB.grade7],["八年级",KB.grade8],["九年级",KB.grade9]];
+  for(var si=0;si<sections.length;si++){
+    var g=sections[si][0],topics=sections[si][1];
+    var topicKeys=Object.keys(topics);
+    for(var ti=0;ti<topicKeys.length;ti++){
+      var topic=topicKeys[ti],d=topics[topic],sc=0,mkw=[];
+      for(var ki=0;ki<d.kw.length;ki++){if(lower.indexOf(d.kw[ki])>=0){sc++;mkw.push(d.kw[ki]);}}
+      if(sc>0)matched.push({topic:topic,grade:g,matchScore:sc,matchedKeywords:mkw,corePoints:d.pts});
+    }
+  }
+  var hfKeys=Object.keys(KB.gzHF);
+  for(var hi=0;hi<hfKeys.length;hi++){
+    var topic=hfKeys[hi],d=KB.gzHF[topic],sc=0,mkw=[];
+    for(var ki=0;ki<d.kw.length;ki++){if(lower.indexOf(d.kw[ki])>=0){sc++;mkw.push(d.kw[ki]);}}
+    if(sc>0)matched.push({topic:topic,grade:"广州高频考点",matchScore:sc*2,matchedKeywords:mkw,corePoints:d.pts});
+  }
+  matched.sort(function(a,b){return b.matchScore-a.matchScore;});
+  return matched;
+}
+function extractMatCtx(material,kws){
+  if(!material||!kws||!kws.length)return"";
+  var sents=material.split(/[。！？\n]/);
+  for(var i=0;i<kws.length;i++){for(var j=0;j<sents.length;j++){if(sents[j].indexOf(kws[i])>=0&&sents[j].trim().length>5)return sents[j].trim().substring(0,50);}}
+  return"";
+}
+function extractKwFromPoint(pt){
+  return pt.split(/[，。、；\s：:""''（）()\[\]【】]/).filter(function(w){return w.length>=2&&!SW.has(w);});
+}
+function softMatch(text,kw){
+  if(!kw||!text)return false;
+  if(text.indexOf(kw)>=0)return true;
+  for(var g=0;g<SYN_GROUPS.length;g++){
+    var grp=SYN_GROUPS[g],found=false;
+    for(var i=0;i<grp.length;i++){if(grp[i]===kw){found=true;break;}}
+    if(found){
+      for(var i=0;i<grp.length;i++){if(grp[i]!==kw&&text.indexOf(grp[i])>=0)return true;}
+      break;
+    }
+  }
+  if(kw.length>=3){
+    var charSet={},chars=[];
+    for(var i=0;i<kw.length;i++){var c=kw[i];if(!SW.has(c)&&!charSet[c]){charSet[c]=1;chars.push(c);}}
+    var matched=0;
+    for(var i=0;i<chars.length;i++){if(text.indexOf(chars[i])>=0)matched++;}
+    if(chars.length>0&&matched/chars.length>=0.6)return true;
+  }
+  return false;
+}
+function softMatchList(text,kws){
+  var result=[];
+  for(var i=0;i<kws.length;i++){
+    var kw=kws[i];
+    if(softMatch(text,kw)){
+      var matched=kw;
+      if(text.indexOf(kw)<0){
+        for(var g=0;g<SYN_GROUPS.length;g++){
+          var grp=SYN_GROUPS[g],found=false;
+          for(var j=0;j<grp.length;j++){if(grp[j]===kw){found=true;break;}}
+          if(found){
+            for(var j=0;j<grp.length;j++){if(grp[j]!==kw&&text.indexOf(grp[j])>=0){matched=grp[j];break;}}
+            break;
+          }
+        }
+      }
+      if(result.indexOf(matched)<0)result.push(matched);
+    }
+  }
+  return result;
+}
+function extractProTerms(text){
+  var terms=["依法治国","法治","宪法","民主","创新","改革","开放","发展","爱国主义","民族精神","中国梦","民族复兴","中华民族","共同富裕","生态文明","绿色发展","可持续发展","科技创新","自主创新","责任","担当","奉献","公民","权利","义务","法律","社会主义核心价值观","人类命运共同体","对外开放","人民","社会","公平","知识产权","科教兴国","人才强国","创新驱动","基本国策","和谐","传统美德","集体主义","国家安全","国家利益","法治社会","道德建设","绿水青山","金山银山","以人民为中心","全过程人民民主","协商民主","法治政府","良法善治","科学立法","严格执法","公正司法","全民守法","节约资源","保护环境","绿色低碳","创新思维","批判精神","尊重劳动","尊重创造","劳动权","受教育权","人身自由","人格尊严","隐私权","监督权","选举权","被选举权","政治权利","总体国家安全观","和平发展","合作共赢","多极化","经济全球化","文化多样性","文明交流互鉴"];
+  var found=terms.filter(function(t){return text.indexOf(t)>=0;});
+  var synFound=[];
+  for(var i=0;i<terms.length;i++){
+    if(found.indexOf(terms[i])>=0)continue;
+    if(softMatch(text,terms[i]))synFound.push(terms[i]);
+  }
+  var all=found.concat(synFound);
+  var unique=[];for(var i=0;i<all.length;i++){if(unique.indexOf(all[i])<0)unique.push(all[i]);}
+  return unique;
+}
+function extractMaterialKeywords(material){
+  if(!material)return[];
+  var words=material.match(/[\u4e00-\u9fa5]{2,6}/g)||[];
+  var filtered=words.filter(function(w){return!SW.has(w);});
+  var unique=[];for(var i=0;i<filtered.length;i++){if(unique.indexOf(filtered[i])<0)unique.push(filtered[i]);}
+  return unique.slice(0,25);
+}
+function checkMaterialUsage(answer,material){
+  if(!material)return{ratio:0,matched:[],total:0};
+  var matKws=extractMaterialKeywords(material);
+  var matched=matKws.filter(function(k){return(answer||"").indexOf(k)>=0;});
+  return{ratio:matKws.length>0?matched.length/matKws.length:0,matched:matched,total:matKws.length};
+}
+function escHtml(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+
+/* === 简答题引擎 === */
+function genShortRef(question,material,totalScore,kps){
+  var ptCount=Math.max(2,Math.floor(totalScore/2));
+  var top=kps.slice(0,Math.min(ptCount+1,kps.length));
+  var refs=[],rem=totalScore;
+  for(var i=0;i<top.length;i++){
+    if(rem<=0)break;
+    var pts=top[i].corePoints||[];
+    for(var j=0;j<Math.min(2,pts.length);j++){
+      if(rem<=0)break;
+      var s=Math.min(2,rem);
+      var kpS=Math.ceil(s*0.6),matS=s-kpS;
+      refs.push({point:pts[j],score:s,kpScore:kpS,matScore:matS,materialLink:extractMatCtx(material,top[i].matchedKeywords),topic:top[i].topic});
+      rem-=s;
+    }
+  }
+  return refs;
+}
+
+function gradeShortAns(answer,refs,material,totalScore){
+  var res={totalScore:totalScore,earnedScore:0,pointDetails:[],feedback:[],suggestions:[],materialUsage:null};
+  var lower=(answer||"").toLowerCase();
+  var matUsage=checkMaterialUsage(answer,material);
+  res.materialUsage=matUsage;
+  for(var i=0;i<refs.length;i++){
+    var ref=refs[i];
+    var kws=extractKwFromPoint(ref.point);
+    var mk=softMatchList(lower,kws);
+    var kpRatio=kws.length>0?mk.length/kws.length:0;
+    var kpEarned=0,kpReason="";
+    if(kpRatio>=0.4){kpEarned=ref.kpScore;kpReason="知识点明确："+mk.join("、");}
+    else if(kpRatio>=0.2){kpEarned=Math.ceil(ref.kpScore*0.5);kpReason="知识点部分涵盖："+mk.join("、");}
+    else{kpEarned=0;kpReason="未点明知识点";}
+    var matEarned=0,matReason="";
+    if(material){
+      var linkKws=extractKwFromPoint(ref.materialLink||"");
+      var matKws=extractMaterialKeywords(material).slice(0,15);
+      var allKws=[];var seen={};
+      for(var x=0;x<linkKws.length;x++){if(!seen[linkKws[x]]){seen[linkKws[x]]=1;allKws.push(linkKws[x]);}}
+      for(var x=0;x<matKws.length;x++){if(!seen[matKws[x]]){seen[matKws[x]]=1;allKws.push(matKws[x]);}}
+      var used=softMatchList(lower,allKws);
+      var aw=["说明","体现","反映","表明","因为","由于","根据","材料中","正如","例如","比如","可见","意味着"];
+      var hasA=false;for(var x=0;x<aw.length;x++){if(lower.indexOf(aw[x])>=0){hasA=true;break;}}
+      if(used.length>=2&&hasA){matEarned=ref.matScore;matReason="结合材料分析：引用"+used.slice(0,3).join("、")+"并展开";}
+      else if(used.length>=1||hasA){matEarned=Math.ceil(ref.matScore*0.5);matReason=used.length>=1?"引用材料但分析不足："+used.join("、"):"有分析语言但未引用材料";}
+      else{matEarned=0;matReason="未结合材料分析";}
+    }else{matEarned=ref.matScore;matReason="（无材料，此项不计）";}
+    var totalE=kpEarned+matEarned;
+    var fullR=kpRatio>=0.6&&matEarned>=ref.matScore?"完全正确":kpRatio>=0.3||matEarned>0?"部分正确":"未得分";
+    res.pointDetails.push({point:ref.point,maxScore:ref.score,earnedScore:totalE,kpScore:ref.kpScore,kpEarned:kpEarned,matScore:ref.matScore,matEarned:matEarned,matched:totalE>0,matchReason:fullR,kpReason:kpReason,matReason:matReason});
+    res.earnedScore+=totalE;
+  }
+  res.earnedScore=Math.min(res.earnedScore,totalScore);
+  var r=res.earnedScore/totalScore;
+  if(r>=0.8)res.feedback.push("✅ 答案较为全面，得分点覆盖良好");
+  else if(r>=0.6)res.feedback.push("📝 答案基本正确，部分得分点有所遗漏");
+  else res.feedback.push("⚠️ 答案得分较低，需要重点加强复习");
+  if(matUsage.ratio>=0.4)res.feedback.push("✅ 材料结合度良好（引用了"+matUsage.matched.length+"/"+matUsage.total+"个材料关键词）");
+  else if(material)res.feedback.push("❌ 材料结合度不足（仅引用"+matUsage.matched.length+"/"+matUsage.total+"个材料关键词），广州中考要求必须结合材料分析");
+  var missed=[];for(var i=0;i<res.pointDetails.length;i++){if(res.pointDetails[i].earnedScore<res.pointDetails[i].maxScore)missed.push(res.pointDetails[i]);}
+  if(missed.length)res.feedback.push("❌ 未能完全覆盖的得分点："+missed.map(function(p){return p.point;}).join("；"));
+  var matMiss=[];for(var i=0;i<res.pointDetails.length;i++){if(res.pointDetails[i].kpEarned>0&&res.pointDetails[i].matEarned<res.pointDetails[i].matScore)matMiss.push(res.pointDetails[i]);}
+  if(matMiss.length)res.feedback.push("⚠️ "+matMiss.length+"个知识点答对但未结合材料，丢失了材料结合分（约40%）");
+  if(r<0.6){res.suggestions.push("答题技巧：先找材料关键词→对应教材知识点→做到'知识点+材料分析'一一对应");res.suggestions.push("注意：广州中考简答题仅答知识点不结合材料，最多得60%的分值");}
+  if(matMiss.length>0)res.suggestions.push("材料结合技巧：在每个知识点后加上'材料中……体现了……'的句式");
+  if(r<0.8)res.suggestions.push("提示：答案中要明确使用道法专业术语，如'依法治国''创新驱动'等");
+  return res;
+}
+
+/* === 小作文引擎（广州中考标准14分制） === */
+function getEssayDS(ts){var c=ts-1;var s=Math.round(c*4/14)||4;var k=Math.round(c*6/14)||6;var a=ts-s-k;if(a<=0)a=5;return{s:s,k:k,a:a};}
+
+function genEssayRef(question,material,totalScore,kps){
+  var top=kps.slice(0,4),ds=getEssayDS(totalScore);
+  var introCtx=extractMatCtx(material,top[0]?top[0].matchedKeywords:[]);
+  var bodyParts=[];
+  for(var i=0;i<top.length;i++){
+    bodyParts.push({
+      paragraph:"第"+(i+1)+"层",topic:top[i].topic,
+      corePoints:(top[i].corePoints||[]).slice(0,2),
+      ctx:extractMatCtx(material,top[i].matchedKeywords),
+      scoreRatio:0.25/top.length
+    });
+  }
+  return{
+    structure:{
+      intro:{desc:"引入材料，提出观点",example:'材料中提到"'+introCtx+'"，这体现了……',scoreRatio:0.1},
+      body:bodyParts,
+      conclusion:{desc:"总结升华，回应主题",example:"综上所述，我们要……，为实现……贡献力量。",scoreRatio:0.1}
+    },ds:ds
+  };
+}
+
+function gradeEssay(answer,eref,material,totalScore){
+  var res={totalScore:totalScore,earnedScore:0,dimensionScores:[],feedback:[],suggestions:[],level:""};
+  var a=answer||"",lower=a.toLowerCase(),ds=eref.ds||getEssayDS(totalScore);
+  var matKws=extractMaterialKeywords(material),matUsed=softMatchList(lower,matKws),matRatio=matKws.length>0?matUsed.length/matKws.length:0;
+  var extS=matRatio>=0.4?2:matRatio>=0.2?1:0;
+  var sitL=["材料","体现","说明","反映","表明","正如","例如","可见","从材料"];
+  var slc=0;for(var i=0;i<sitL.length;i++){if(lower.indexOf(sitL[i])>=0)slc++;}
+  var lnkS=slc>=2?2:slc>=1?1:0;
+  var sitA={score:Math.min(extS+lnkS,ds.s),extS:extS,lnkS:lnkS,matchedMatKws:matUsed};
+
+  var pt=extractProTerms(lower);
+  var acc=pt.length>=2?2:pt.length>=1?1:0;
+  var cp=["是.*的","要.*做","必须","应该","需要","有利于","有助于","保障","维护","促进","推动","坚持","贯彻","落实","弘扬","培养","树立","增强","提高"];
+  var hasC=false;for(var i=0;i<cp.length;i++){if(new RegExp(cp[i]).test(lower)){hasC=true;break;}}
+  var comp=hasC&&pt.length>=2?2:hasC||pt.length>=2?1:0;
+  var areaNames=["法治","创新","生态","民主","文化","梦想","责任","公平"];
+  var areaKws=[["法治","依法","宪法","法制","法律"],["创新","科技","改革"],["生态","环境","绿色","低碳"],["民主","人民","权利","权益","平等"],["文化","传统","自信","传承"],["梦","复兴","奋斗","现代化"],["责任","担当","奉献","义务"],["公平","正义","共富","共享"]];
+  var areasSet={},areas=[];
+  for(var i=0;i<areaKws.length;i++){var ks=areaKws[i],hit=false;for(var j=0;j<ks.length;j++){if(lower.indexOf(ks[j])>=0){hit=true;break;}}if(hit)areas.push(areaNames[i]);}
+  var div=areas.length>=3?2:areas.length>=2?1:0;
+  var knoA={score:Math.min(acc+comp+div,ds.k),acc:acc,comp:comp,div:div,terms:pt,areas:areas};
+
+  var hasI=a.length>40&&(lower.indexOf("材料")>=0||lower.indexOf("体现")>=0||lower.indexOf("说明")>=0||lower.indexOf("反映")>=0);
+  var hasB=a.length>120;
+  var hasCC=lower.indexOf("综上")>=0||lower.indexOf("因此")>=0||lower.indexOf("总之")>=0||lower.indexOf("总结")>=0||lower.indexOf("所以")>=0;
+  var sc=[hasI,hasB,hasCC];var scCount=0;for(var i=0;i<sc.length;i++)if(sc[i])scCount++;
+  var str=scCount>=3?2:scCount>=2?1:0;
+  var lw=["因为","所以","因此","首先","其次","另外","再者","不仅","而且","既","又","一方面","另一方面","同时","此外"];
+  var lf=0;for(var i=0;i<lw.length;i++){if(lower.indexOf(lw[i])>=0)lf++;}
+  var len=a.length>=250;
+  var lang=(lf>=3&&len)?2:(lf>=1||a.length>=150)?1:0;
+  var vw=["正确","积极","应该","弘扬","践行","树立","增强","培养","传承","坚持"];
+  var nw=["错误","消极","不应该","不能"];
+  var vwCount=0;for(var i=0;i<vw.length;i++){if(lower.indexOf(vw[i])>=0)vwCount++;}
+  var nwHit=false;for(var i=0;i<nw.length;i++){if(lower.indexOf(nw[i])>=0){nwHit=true;break;}}
+  var val=vwCount>=2&&!nwHit?1:vwCount>=2?1:0;
+  var abiA={score:Math.min(str+lang+val,ds.a),str:str,lang:lang,val:val};
+
+  var dims=[
+    {name:"情境运用",max:ds.s,earned:sitA.score,ratio:Math.round(sitA.score/Math.max(ds.s,1)*100),comment:sitA.score>=Math.ceil(ds.s*0.8)?"提取了"+sitA.matchedMatKws.length+"个材料关键词，情境对应准确":sitA.score>=Math.ceil(ds.s*0.5)?"材料提取能力一般，仅引用"+sitA.matchedMatKws.length+"个关键词":"未能有效提取和运用材料情境",sub:[{label:"材料信息提取",max:2,earned:Math.min(sitA.extS,2)},{label:"情境知识对应",max:2,earned:Math.min(sitA.lnkS,2)}]},
+    {name:"知识点运用",max:ds.k,earned:knoA.score,ratio:Math.round(knoA.score/Math.max(ds.k,1)*100),comment:knoA.terms.length>0?"运用了"+knoA.terms.join("、")+"等"+knoA.terms.length+"个专业术语，覆盖"+knoA.areas.length+"个板块":"未使用道法专业术语",sub:[{label:"准确性",max:2,earned:Math.min(knoA.acc,2)},{label:"完整性",max:2,earned:Math.min(knoA.comp,2)},{label:"多样性",max:2,earned:Math.min(knoA.div,2)}]},
+    {name:"能力维度",max:ds.a,earned:abiA.score,ratio:Math.round(abiA.score/Math.max(ds.a,1)*100),comment:abiA.score>=Math.ceil(ds.a*0.8)?"逻辑清晰、表达规范、价值导向正确":abiA.score>=Math.ceil(ds.a*0.5)?"能力表现一般，需加强结构或表达":"结构、表达或价值导向需大幅改进",sub:[{label:"结构逻辑",max:2,earned:Math.min(abiA.str,2)},{label:"语言表达",max:2,earned:Math.min(abiA.lang,2)},{label:"价值判断",max:1,earned:Math.min(abiA.val,1)}]}
+  ];
+  res.dimensionScores=dims;
+  var total=0;for(var i=0;i<dims.length;i++)total+=dims[i].earned;
+  res.earnedScore=Math.min(total,totalScore);
+  var r=res.earnedScore/totalScore;
+  res.level=r>=0.85?"优秀":r>=0.7?"良好":r>=0.5?"合格":"待提高";
+  res.feedback.push("📊 整体评级："+res.level);
+  res.feedback.push("📐 广州中考标准：情境运用"+ds.s+"分 + 知识点运用"+ds.k+"分 + 能力维度"+ds.a+"分 = "+(ds.s+ds.k+ds.a)+"分");
+  for(var i=0;i<dims.length;i++){
+    var d=dims[i],ic=d.ratio>=70?"✅":d.ratio>=50?"📝":"❌";
+    res.feedback.push(ic+" "+d.name+"（"+d.earned+"/"+d.max+"分，"+d.ratio+"%）："+d.comment);
+  }
+  if(sitA.score<Math.ceil(ds.s*0.7))res.suggestions.push("情境运用提升：每个分析段落都要引用材料具体信息，用'材料中……体现了……'建立对应");
+  if(knoA.div<2)res.suggestions.push("知识点多样性：尝试从多个知识板块（法治、创新、生态、文化等）选取知识点");
+  if(knoA.comp<2)res.suggestions.push("知识点完整性：用完整学科语言表述，如'创新是引领发展的第一动力'");
+  if(abiA.str<2)res.suggestions.push("结构建议：采用'引材料→析知识→做总结'三段式写法");
+  if(abiA.lang<2)res.suggestions.push("语言建议：使用逻辑关联词（因为……所以……、首先……其次……）增强层次感");
+  if(a.length<200)res.suggestions.push("篇幅提示：小作文建议不少于200字");
+  return res;
+}
+
+/* === 自定义标准小作文评分 === */
+function gradeEssayCustom(answer,cRef,material,totalScore){
+  var res={totalScore:totalScore,earnedScore:0,dimensionScores:[],feedback:[],suggestions:[],level:""};
+  var a=answer||"",lower=a.toLowerCase(),ds=getEssayDS(totalScore);
+  var stdKws=extractKwFromPoint(cRef.customAnswer||"");
+  var matchedKws=softMatchList(lower,stdKws);
+  var answerRatio=stdKws.length>0?matchedKws.length/stdKws.length:0;
+  var matKws=extractMaterialKeywords(material),matUsed=softMatchList(lower,matKws);
+  var matRatio=matKws.length>0?matUsed.length/matKws.length:0;
+  var sitLinks=["材料","体现","说明","反映","表明","例如","可见"];
+  var slc=0;for(var i=0;i<sitLinks.length;i++){if(lower.indexOf(sitLinks[i])>=0)slc++;}
+  var sitRatio=matRatio>=0.3?(slc>=2?1:0.75):matRatio>=0.15?0.5:0.25;
+  var proTerms=extractProTerms(lower);
+  var knowRatio=Math.min(proTerms.length/4,1)*0.85+(proTerms.length>0?0.15:0);
+  var hasI=a.length>50&&(lower.indexOf("材料")>=0||lower.indexOf("体现")>=0||lower.indexOf("说明")>=0);
+  var hasC=lower.indexOf("综上")>=0||lower.indexOf("因此")>=0||lower.indexOf("总之")>=0||lower.indexOf("总结")>=0;
+  var hasB=a.length>150;
+  var structRatio=([hasI,hasC,hasB].filter(Boolean).length)/3;
+  var lw=["因为","所以","因此","首先","其次","另外","再者","不仅","而且"];
+  var lf=0;for(var i=0;i<lw.length;i++){if(lower.indexOf(lw[i])>=0)lf++;}
+  var lenS=a.length>=200?1:a.length>=100?0.7:0.4;
+  var langRatio=(lf>=2?0.9:lf>=1?0.7:0.5)*0.5+lenS*0.5;
+  var vw=["正确","积极","应该","弘扬","践行","树立"];
+  var vwCount=0;for(var i=0;i<vw.length;i++){if(lower.indexOf(vw[i])>=0)vwCount++;}
+  var hasValue=vwCount>=2;
+  var abiRatio=structRatio*0.4+langRatio*0.4+(hasValue?0.2:0);
+  var critRatio=0.5;
+  if(cRef.customCriteria){var ck=extractKwFromPoint(cRef.customCriteria);var cm=ck.filter(function(k){return lower.indexOf(k)>=0;});critRatio=ck.length>0?Math.min(cm.length/ck.length,1):0.5;}
+  var halfS=Math.round(ds.s*0.5),ceilS2=Math.ceil(ds.s*0.5);
+  var ceilA40a=Math.ceil(ds.a*0.4),ceilA40b=Math.ceil(ds.a*0.4);
+  var maxVal=Math.max(1,ds.a-ceilA40a-ceilA40b);
+  var dims=[
+    {name:"标准答案契合度",max:halfS,earned:Math.round(halfS*answerRatio),ratio:Math.round(answerRatio*100),comment:answerRatio>=0.6?"与标准答案高度契合（匹配"+matchedKws.length+"个关键词）":"与标准答案差距较大"},
+    {name:"情境运用",max:ceilS2,earned:Math.round(ceilS2*sitRatio),ratio:Math.round(sitRatio*100),comment:sitRatio>=0.7?"能有效运用材料":"材料运用不足"},
+    {name:"知识点运用",max:ds.k,earned:Math.round(ds.k*knowRatio),ratio:Math.round(knowRatio*100),comment:knowRatio>=0.6?"运用了"+proTerms.join("、")+"等":"专业术语不足"},
+    {name:"结构逻辑",max:ceilA40a,earned:Math.round(ceilA40a*structRatio),ratio:Math.round(structRatio*100),comment:structRatio>=0.7?"结构完整":"结构不完整"},
+    {name:"语言表达",max:ceilA40b,earned:Math.round(ceilA40b*langRatio),ratio:Math.round(langRatio*100),comment:langRatio>=0.7?"表达清晰":"需加强逻辑表达"},
+    {name:"价值判断",max:maxVal,earned:Math.round(maxVal*(hasValue?1:0.3)),ratio:Math.round((hasValue?1:0.3)*100),comment:hasValue?"价值导向正确":"需加强正确价值导向"}
+  ];
+  if(cRef.customCriteria){
+    var extraMax=Math.min(2,Math.round(totalScore*0.15));
+    dims.push({name:"评分标准细则",max:extraMax,earned:Math.round(extraMax*critRatio),ratio:Math.round(critRatio*100),comment:critRatio>=0.7?"符合评分细则":"部分细则未满足"});
+  }
+  var total=0;for(var i=0;i<dims.length;i++)total+=dims[i].earned;
+  res.earnedScore=Math.min(total,totalScore);
+  var r=res.earnedScore/totalScore;
+  res.level=r>=0.85?"优秀":r>=0.7?"良好":r>=0.5?"合格":"待提高";
+  res.dimensionScores=dims;
+  res.feedback.push("📊 整体评级："+res.level+"（按自定义标准批改）");
+  for(var i=0;i<dims.length;i++){
+    var d=dims[i],ic=d.ratio>=70?"✅":d.ratio>=50?"📝":"❌";
+    res.feedback.push(ic+" "+d.name+"（"+d.earned+"/"+d.max+"分，"+d.ratio+"%）："+d.comment);
+  }
+  if(structRatio<0.7)res.suggestions.push("结构建议：采用'引材料→析知识→做总结'三段式写法");
+  if(sitRatio<0.6)res.suggestions.push("材料运用：每个分析段落都要引用或呼应材料内容");
+  if(answerRatio<0.6)res.suggestions.push("答案内容：请参考标准答案，补充缺失的关键表述");
+  return res;
+}
+
+/* === UI 逻辑 === */
+var currentType="shortAnswer",stdPoints=[];
+
+function switchType(type){
+  currentType=type;
+  var btns=document.querySelectorAll(".tab-btn");
+  for(var i=0;i<btns.length;i++){
+    var isActive=(i===0&&type==="shortAnswer")||(i===1&&type==="essay");
+    if(isActive)btns[i].classList.add("active");else btns[i].classList.remove("active");
+  }
+  document.getElementById("shortStdSection").style.display=type==="shortAnswer"?"block":"none";
+  document.getElementById("essayStdSection").style.display=type==="essay"?"block":"none";
+  document.getElementById("totalScore").value=type==="essay"?14:6;
+  updateStdTotal();
+  updateScoreHint();
+}
+
+function updateScoreHint(){
+  var v=parseInt(document.getElementById("totalScore").value)||6;
+  var hintEl=document.getElementById("scoreHint");
+  if(currentType==="essay"){
+    var ds=getEssayDS(v);
+    hintEl.textContent="\uD83D\uDCA1 小作文"+v+"分制：情境"+ds.s+"分 + 知识点"+ds.k+"分 + 能力"+ds.a+"分";
+  }else{
+    hintEl.textContent="\uD83D\uDCA1 简答题"+v+"分 · 每个得分点=知识点(60%)+材料结合(40%)";
+  }
+}
+
+function toggleStdAnswer(){
+  document.getElementById("stdToggle").classList.toggle("open");
+  document.getElementById("stdBody").classList.toggle("open");
+}
+function addStdPoint(p,s){stdPoints.push({point:p||"",score:s||2});renderStdPoints();}
+function removeStdPoint(i){stdPoints.splice(i,1);renderStdPoints();}
+function renderStdPoints(){
+  var list=document.getElementById("stdPointsList");
+  if(!stdPoints.length){list.innerHTML='<p style="font-size:12px;color:var(--gray-500);text-align:center;padding:8px">暂未添加得分点</p>';}
+  else{
+    var h="";
+    for(var i=0;i<stdPoints.length;i++){
+      var p=stdPoints[i];
+      h+='<div class="scoring-row"><span class="scoring-idx">'+(i+1)+'</span>';
+      h+='<input type="text" value="'+escHtml(p.point)+'" placeholder="得分点..." oninput="stdPoints['+i+'].point=this.value">';
+      h+='<input type="number" value="'+p.score+'" min="1" max="10" onchange="stdPoints['+i+'].score=parseInt(this.value)||1;updateStdTotal()">';
+      h+='<span style="font-size:12px;color:var(--gray-500)">分</span>';
+      h+='<button class="remove-point" onclick="removeStdPoint('+i+')"><i class="fas fa-times"></i></button></div>';
+    }
+    list.innerHTML=h;
+  }
+  updateStdTotal();
+}
+function updateStdTotal(){
+  var total=0;for(var i=0;i<stdPoints.length;i++)total+=(stdPoints[i].score||0);
+  document.getElementById("stdPointCount").textContent=stdPoints.length;
+  document.getElementById("stdTotalScore").textContent=total;
+  document.getElementById("stdFullScore").textContent=document.getElementById("totalScore").value;
+}
+function hasCustomStd(){
+  if(currentType==="shortAnswer"){for(var i=0;i<stdPoints.length;i++){if(stdPoints[i].point.trim())return true;}return false;}
+  var el=document.getElementById("stdEssayAnswer");return el&&el.value.trim()?true:false;
+}
+function getCustomShortRef(){
+  var refs=[];
+  for(var i=0;i<stdPoints.length;i++){
+    var p=stdPoints[i];
+    if(!p.point.trim())continue;
+    var s=p.score||1,kpS=Math.ceil(s*0.6);
+    refs.push({point:p.point.trim(),score:s,kpScore:kpS,matScore:s-kpS,topic:"自定义标准",materialLink:""});
+  }
+  return refs;
+}
+function getCustomEssayRef(){
+  var ea=document.getElementById("stdEssayAnswer"),ec=document.getElementById("stdEssayCriteria");
+  return{structure:null,ds:null,customAnswer:ea?ea.value.trim():"",customCriteria:ec?ec.value.trim():""};
+}
+function clearStdAnswer(){
+  stdPoints=[];renderStdPoints();
+  var ea=document.getElementById("stdEssayAnswer");if(ea)ea.value="";
+  var ec=document.getElementById("stdEssayCriteria");if(ec)ec.value="";
+  showToast("已清除自定义标准");
+}
+
+/* === OCR === */
+function previewAndOCR(input,previewId,fieldId){
+  var file=input.files[0];if(!file)return;
+  var preview=document.getElementById(previewId);
+  preview.src=URL.createObjectURL(file);preview.style.display="block";
+  if(fieldId==="stdOcrField"){doStdOCR(file);}
+  else{var resultId=previewId==="qPreview"?"qOcrResult":previewId==="aPreview"?"aOcrResult":"mOcrResult";doOCR(file,fieldId,resultId);}
+}
+function doOCR(file,fieldId,resultId){
+  var ta=document.getElementById(fieldId),rd=document.getElementById(resultId);
+  rd.style.display="block";rd.textContent="⏳ 正在识别...";
+  if(typeof Tesseract!=="undefined"){
+    Tesseract.recognize(file,"chi_sim+eng",{logger:function(){}}).then(function(r){
+      var text=r.data.text;
+      if(text&&text.trim()){ta.value=text.trim();rd.textContent="✅ 识别成功！";rd.style.borderColor="#10b981";}
+      else{rd.textContent="⚠️ 识别为空";rd.style.borderColor="#f59e0b";}
+    }).catch(function(e){rd.textContent="❌ "+e.message;rd.style.borderColor="#ef4444";});
+  }else{rd.textContent="⚠️ OCR未加载";rd.style.borderColor="#f59e0b";}
+}
+function doStdOCR(file){
+  var rd=document.getElementById("stdOcrResult");rd.style.display="block";rd.textContent="⏳ 正在识别...";
+  if(typeof Tesseract!=="undefined"){
+    Tesseract.recognize(file,"chi_sim+eng",{logger:function(){}}).then(function(r){
+      var text=r.data.text?r.data.text.trim():"";
+      if(text){
+        var lines=text.split("\n");var cleaned=[];for(var i=0;i<lines.length;i++){var l=lines[i].trim();if(l.length>2)cleaned.push(l);}
+        var sr=/[（(](\d+)[分)）]/;
+        if(currentType==="shortAnswer"&&cleaned.length>0){
+          stdPoints=[];
+          for(var i=0;i<cleaned.length;i++){
+            var m=cleaned[i].match(sr);
+            if(m){stdPoints.push({point:cleaned[i].replace(sr,"").replace(/^\d+[\\.、\s]+/,"").trim(),score:parseInt(m[1])||1});}
+            else if(cleaned[i].length>5){stdPoints.push({point:cleaned[i].replace(/^\d+[\\.、\s]+/,"").trim(),score:2});}
+          }
+          renderStdPoints();rd.textContent="✅ 已识别"+stdPoints.length+"个得分点";rd.style.borderColor="#10b981";
+        }else if(currentType==="essay"){
+          document.getElementById("stdEssayAnswer").value=text;rd.textContent="✅ 已识别";rd.style.borderColor="#10b981";
+        }else{
+          stdPoints=[];for(var i=0;i<Math.min(cleaned.length,10);i++){if(cleaned[i].length>5)stdPoints.push({point:cleaned[i].replace(/^\d+[\\.、\s]+/,"").trim(),score:2});}
+          renderStdPoints();rd.textContent="✅ 已解析"+stdPoints.length+"个得分点";rd.style.borderColor="#10b981";
+        }
+      }else{rd.textContent="⚠️ 识别为空";rd.style.borderColor="#f59e0b";}
+    }).catch(function(e){rd.textContent="❌ "+e.message;});
+  }else{rd.textContent="⚠️ OCR未加载";}
+}
+
+/* === 分析考点 === */
+function analyzePoints(){
+  var q=document.getElementById("question").value,m=document.getElementById("material").value;
+  if(!q){showToast("请先输入题目内容");return;}
+  var kps=extractKP(m+" "+q);
+  renderKP(kps);
+}
+function renderKP(kps){
+  document.getElementById("kpCard").style.display="block";
+  var c=document.getElementById("kpContent");
+  if(!kps.length){c.innerHTML='<p style="color:var(--gray-500)">未匹配到明确考点</p>';return;}
+  var h='<table class="detail-table"><thead><tr><th>考点</th><th>来源</th><th>匹配关键词</th><th>核心知识点</th></tr></thead><tbody>';
+  var show=kps.slice(0,8);
+  for(var i=0;i<show.length;i++){
+    var p=show[i];
+    h+='<tr><td><strong>'+p.topic+'</strong></td><td>'+p.grade+'</td><td><div class="kp-tags">';
+    for(var j=0;j<p.matchedKeywords.length;j++)h+='<span class="kp-tag">'+p.matchedKeywords[j]+'</span>';
+    h+='</div></td><td>';
+    var pts=p.corePoints||[];for(var j=0;j<pts.length;j++)h+='<div style="margin-bottom:4px">• '+pts[j]+'</div>';
+    h+='</td></tr>';
+  }
+  h+='</tbody></table>';
+  c.innerHTML=h;
+}
+
+/* === 批改主流程 === */
+function doGrade(){
+  var q=document.getElementById("question").value.trim();
+  var m=document.getElementById("material").value.trim();
+  var a=document.getElementById("studentAnswer").value.trim();
+  var ts=parseInt(document.getElementById("totalScore").value)||6;
+  if(!q){showToast("请输入题目内容");return;}
+  if(!a){showToast("请输入学生答案");return;}
+  document.getElementById("loadingCard").classList.add("active");
+  document.getElementById("reportCard").classList.remove("active");
+  document.getElementById("gradeBtn").disabled=true;
+  setTimeout(function(){
+    try{
+      var kps=extractKP(m+" "+q);
+      var reference,result,useC=hasCustomStd();
+      if(currentType==="essay"){
+        reference=genEssayRef(q,m,ts,kps);
+        if(useC){var cr=getCustomEssayRef();result=gradeEssayCustom(a,cr,m,ts);result._useCustom=true;reference=cr;}
+        else{result=gradeEssay(a,reference,m,ts);}
+      }else{
+        reference=genShortRef(q,m,ts,kps);
+        if(useC){reference=getCustomShortRef();result=gradeShortAns(a,reference,m,ts);result._useCustom=true;}
+        else{result=gradeShortAns(a,reference,m,ts);}
+      }
+      var now=new Date();
+      var ts2=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0")+" "+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+      var ratio=result.earnedScore/ts;
+      var level=result.level||(ratio>=0.85?"优秀":ratio>=0.7?"良好":ratio>=0.5?"合格":"待提高");
+      var report={meta:{timestamp:ts2,type:currentType==="essay"?"小作文":"简答题",totalScore:ts,earnedScore:result.earnedScore,percentage:Math.round(ratio*100),level:level},grading:result,reference:reference};
+      renderReport(report,kps);
+      renderKP(kps);
+    }catch(e){showToast("批改失败："+e.message);}
+    document.getElementById("loadingCard").classList.remove("active");
+    document.getElementById("gradeBtn").disabled=false;
+  },600);
+}
+
+/* === 渲染报告 === */
+function renderReport(report,kps){
+  document.getElementById("reportCard").classList.add("active");
+  var c=document.getElementById("reportContent");
+  var meta=report.meta,grading=report.grading,reference=report.reference;
+  var r=meta.percentage/100;
+  var cls=r>=0.85?"excellent":r>=0.7?"good":r>=0.5?"fair":"need-work";
+  var h='<div class="score-display"><div class="score-circle '+cls+'"><span>'+meta.earnedScore+'</span><span class="label">/ '+meta.totalScore+'</span></div><div class="score-meta"><span class="level '+cls+'">'+meta.level+'</span>&nbsp;&nbsp;'+meta.type+' · 得分率 '+meta.percentage+'%&nbsp;&nbsp;'+meta.timestamp+'</div></div>';
+
+  if(currentType==="shortAnswer"){
+    h+='<div class="detail-section"><h4><i class="fas fa-list-check" style="color:var(--primary)"></i> 逐点评分详情（知识点60% + 材料结合40%）</h4>';
+    h+='<table class="detail-table"><thead><tr><th>得分点</th><th>满分</th><th>得分</th><th>状态</th><th>说明</th></tr></thead><tbody>';
+    var pds=grading.pointDetails||[];
+    for(var i=0;i<pds.length;i++){
+      var pd=pds[i];
+      var s=pd.earnedScore===pd.maxScore?"full":pd.earnedScore>0?"half":"zero";
+      var st=pd.earnedScore===pd.maxScore?"✅ 完全正确":pd.earnedScore>0?"📝 部分正确":"❌ 未得分";
+      h+='<tr><td>'+escHtml(pd.point)+'</td><td>'+pd.maxScore+'</td><td><strong>'+pd.earnedScore+'</strong></td><td><span class="score-badge '+s+'">'+st+'</span></td><td style="font-size:12px;color:var(--gray-500)">'+pd.matchReason+'</td></tr>';
+      h+='<tr class="sub-row"><td colspan="5" style="padding:4px 14px 4px 40px">';
+      h+='<span style="color:var(--primary);font-weight:600">知识点('+pd.kpScore+'分)：</span>'+pd.kpEarned+'/'+pd.kpScore+'分 · '+pd.kpReason;
+      h+='&nbsp;&nbsp;|&nbsp;&nbsp;<span style="color:#059669;font-weight:600">材料结合('+pd.matScore+'分)：</span>'+pd.matEarned+'/'+pd.matScore+'分 · '+pd.matReason;
+      h+='</td></tr>';
+    }
+    h+='</tbody></table></div>';
+    if(grading.materialUsage){
+      var mu=grading.materialUsage;
+      h+='<div style="padding:12px 16px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;margin-bottom:16px;font-size:13px">';
+      h+='<strong>📊 材料结合度：</strong>答案引用了 <strong style="color:#059669">'+mu.matched.length+'/'+mu.total+'</strong> 个材料关键词';
+      if(mu.ratio>=0.4)h+=' <span style="color:#059669">✅ 良好</span>';
+      else h+=' <span style="color:#ef4444">❌ 不足（广州中考要求必须结合材料）</span>';
+      h+='</div>';
+    }
+  }else{
+    h+='<div class="detail-section"><h4><i class="fas fa-chart-bar" style="color:var(--primary)"></i> 维度评分（广州中考标准）</h4>';
+    h+='<div class="dim-summary">';
+    var dimMap={sit:"sit",kno:"kno",abi:"abi"};
+    var dims=grading.dimensionScores||[];
+    for(var i=0;i<dims.length;i++){
+      var d=dims[i];
+      var dc=d.name.indexOf("情境")>=0?"sit":d.name.indexOf("知识")>=0?"kno":"abi";
+      h+='<div class="dim-card '+dc+'"><div class="dim-card-name">'+d.name+'</div><div class="dim-card-score">'+d.earned+'<span class="dim-card-max">/'+d.max+'分</span></div>';
+      if(d.sub){
+        h+='<div class="sub-dim-list">';
+        for(var j=0;j<d.sub.length;j++)h+='<div class="sub-dim-item"><span class="sub-label">'+d.sub[j].label+'</span><span class="sub-score">'+d.sub[j].earned+'/'+d.sub[j].max+'</span></div>';
+        h+='</div>';
+      }
+      h+='</div>';
+    }
+    h+='</div>';
+    for(var i=0;i<dims.length;i++){
+      var d=dims[i];
+      var bc=d.ratio>=70?"high":d.ratio>=50?"mid":"low";
+      h+='<div class="dim-bar-wrap"><div class="dim-bar-header"><span class="dim-name">'+d.name+'</span><span class="dim-score">'+d.earned+' / '+d.max+'（'+d.ratio+'%）</span></div><div class="dim-bar"><div class="dim-bar-fill '+bc+'" style="width:'+d.ratio+'%"></div></div><div style="font-size:12px;color:var(--gray-500);margin-top:4px">'+d.comment+'</div></div>';
+    }
+    h+='</div>';
+  }
+
+  h+='<div class="detail-section"><h4><i class="fas fa-comment-dots" style="color:var(--success)"></i> 批改反馈</h4><ul class="feedback-list">';
+  var fb=grading.feedback||[];for(var i=0;i<fb.length;i++)h+='<li>'+fb[i]+'</li>';
+  h+='</ul></div>';
+  if(grading.suggestions&&grading.suggestions.length){
+    h+='<div class="detail-section"><h4><i class="fas fa-lightbulb" style="color:var(--warning)"></i> 提升建议</h4><ul class="suggestion-list">';
+    for(var i=0;i<grading.suggestions.length;i++)h+='<li>'+grading.suggestions[i]+'</li>';
+    h+='</ul></div>';
+  }
+
+  var useC=grading._useCustom;
+  var refIcon=useC?"fas fa-key":"fas fa-book";
+  var refColor=useC?"var(--accent)":"#059669";
+  var refTitle=useC?"自定义标准答案":"参考答案（智能生成）";
+  h+='<div class="detail-section"><h4><i class="'+refIcon+'" style="color:'+refColor+'"></i> '+refTitle;
+  if(useC)h+='<span class="custom-std-badge"><i class="fas fa-check-circle"></i> 按自定义标准批改</span>';
+  h+='</h4>';
+  if(currentType==="shortAnswer"){
+    h+='<div class="reference-box">';
+    if(useC)h+='<p style="font-size:12px;color:#92400e;margin-bottom:10px">📌 手动录入的评分标准</p>';
+    var refs=reference||[];
+    for(var i=0;i<refs.length;i++){
+      var rp=refs[i];
+      h+='<div class="ref-point"><strong>• '+escHtml(rp.point)+'</strong><span class="ref-score">'+rp.score+'分</span>';
+      if(rp.topic)h+='<span style="font-size:11px;color:var(--gray-500);margin-left:8px">['+rp.topic+']</span>';
+      if(!useC)h+='<div style="font-size:11px;color:#065f46;margin-top:4px">评分细则：知识点('+rp.kpScore+'分，60%) + 材料结合('+rp.matScore+'分，40%)</div>';
+      if(rp.materialLink)h+='<span class="ref-material">📎 材料关联：'+escHtml(rp.materialLink)+'</span>';
+      h+='</div>';
+    }
+    h+='</div>';
+  }else{
+    h+='<div class="essay-ref-structure">';
+    if(useC&&reference&&reference.customAnswer){
+      h+='<div class="essay-part"><div class="essay-part-header"><span class="part-title">📋 标准答案全文</span></div><p style="font-size:13px;line-height:1.8;padding:8px;background:var(--gray-50);border-radius:6px;white-space:pre-wrap">'+escHtml(reference.customAnswer)+'</p></div>';
+      if(reference.customCriteria)h+='<div class="essay-part"><div class="essay-part-header"><span class="part-title">📏 评分标准细则</span></div><p style="font-size:13px;line-height:1.8;padding:8px;background:var(--gray-50);border-radius:6px;white-space:pre-wrap">'+escHtml(reference.customCriteria)+'</p></div>';
+    }else{
+      var st=reference&&reference.structure?reference.structure:null;
+      if(st&&st.intro)h+='<div class="essay-part"><div class="essay-part-header"><span class="part-title">📌 引入（开头）</span></div><p style="font-size:13px;color:var(--gray-500)">'+st.intro.desc+'</p><p style="font-size:13px;color:var(--gray-500);margin-top:6px;padding:8px;background:var(--gray-50);border-radius:6px">示例：'+st.intro.example+'</p></div>';
+      if(st&&st.body)for(var i=0;i<st.body.length;i++){
+        var bp=st.body[i];
+        h+='<div class="essay-part"><div class="essay-part-header"><span class="part-title">📝 '+bp.paragraph+'：'+bp.topic+'</span></div>';
+        var bpts=bp.corePoints||[];for(var j=0;j<bpts.length;j++)h+='<p style="font-size:13px;margin-bottom:4px">• '+bpts[j]+'</p>';
+        h+='</div>';
+      }
+      if(st&&st.conclusion)h+='<div class="essay-part"><div class="essay-part-header"><span class="part-title">🎯 总结（结尾）</span></div><p style="font-size:13px;color:var(--gray-500)">'+st.conclusion.desc+'</p><p style="font-size:13px;color:var(--gray-500);margin-top:6px;padding:8px;background:var(--gray-50);border-radius:6px">示例：'+st.conclusion.example+'</p></div>';
+      var ds2=reference&&reference.ds?reference.ds:getEssayDS(parseInt(document.getElementById("totalScore").value)||14);
+      h+='<div style="padding:12px 16px;border-radius:8px;background:#fffbeb;border:1px solid #fde68a;font-size:12px;color:#92400e"><strong>📐 广州中考小作文评分标准说明：</strong>情境运用'+ds2.s+'分 + 知识点运用'+ds2.k+'分 + 能力维度'+ds2.a+'分 = '+(ds2.s+ds2.k+ds2.a)+'分（含1分附加/书写分由人工评定）</div>';
+    }
+    h+='</div>';
+  }
+  h+='</div>';
+  c.innerHTML=h;
+}
+
+function showToast(msg){
+  var old=document.querySelector(".toast");if(old)old.remove();
+  var t=document.createElement("div");t.className="toast";t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},300);},3000);
+}
+
+/* === 题库数据 === */
+var QB_DATA=[
+{id:1,region:"广州",year:2024,type:"材料分析",topic:"宪法",title:"2024广州中考：宪法与公民权利",
+material:"2024年是我国宪法公布施行42周年。某校九年级(1)班开展了“学宪法，讲宪法”主题活动。同学们收集了以下材料：\n材料一：宪法是国家的根本法，是治国安邦的总章程。宪法规定了国家生活中最根本、最重要的问题。\n材料二：中学生小李发现学校周边有人非法向未成年人出售电子烟，他向有关部门进行了举报。",
+question:"(1) 为什么说宪法是国家的根本法？(4分)\n(2) 小李的做法给我们什么启示？(4分)",
+score:8,
+standardAnswer:[
+{point:"宪法具有最高的法律效力；宪法是其他法律的立法基础和立法依据；宪法规定国家生活中最根本、最重要的问题",score:4},
+{point:"公民要增强宪法意识，学习宪法；公民要依法行使监督权；公民要积极维护自身合法权益",score:4}
+],
+criteria:"(1)答出宪法最高法律效力(2分)+立法基础(1分)+规定根本问题(1分)；(2)答出宪法意识(1分)+行使监督权(2分)+维护权益(1分)"
+},
+{id:2,region:"广州",year:2024,type:"材料分析",topic:"创新",title:"2024广州中考：科技创新与新质生产力",
+material:"2024年《政府工作报告》提出，要加快发展新质生产力，大力推进现代化产业体系建设。近年来，我国在人工智能、量子信息、生物技术等领域取得一系列重大突破。\n某市设立青少年科技创新基金，鼓励中学生参与科技发明创造。中学生小张发明的“智能垃圾分类装置”获得省级科技创新大赛一等奖。",
+question:"(1) 我国为什么要大力推进科技创新？(4分)\n(2) 作为青少年，我们应如何培养创新精神？(4分)",
+score:8,
+standardAnswer:[
+{point:"创新是引领发展的第一动力；科技创新是综合国力竞争的决定性因素；创新是民族进步的灵魂；科技创新能推动生产力发展和社会进步",score:4},
+{point:"培养好奇心和想象力；勇于探索，敢于质疑；积极参加科技创新实践活动；努力学习科学文化知识",score:4}
+],
+criteria:"(1)答出创新是第一动力(1分)+竞争决定因素(1分)+民族进步灵魂(1分)+推动发展(1分)；(2)每点1分，答出4点得4分"
+},
+{id:3,region:"安徽",year:2022,type:"材料分析",topic:"法治",title:"2022安徽中考：学法用法，与法同行",
+material:"假期，小华来到开饭店的姐姐家做客。小华和姐姐在饭店包间打扫卫生时拾到一块名表。\n闲谈中，姐夫谈到有火锅店将客人用过的火锅底料留存下来，重复使用。\n一村民找姐姐商量，准备去捕猎野生动物卖给她，姐姐拒绝并加以劝阻。",
+question:"(1) 小华拾到名表应该怎么办？理由是什么？(2分)\n(2) 火锅店重复使用火锅底料的行为对不对？为什么？(2分)\n(3) 对姐姐拒绝捕猎野生动物的行为，小华应该怎么做？理由是什么？(2分)",
+score:6,
+standardAnswer:[
+{point:"找到失主并归还；公民享有财产权；诚实守信是中华民族的传统美德",score:2},
+{point:"不对；这会侵犯消费者的合法权益，是对顾客不负责任的表现",score:2},
+{point:"赞成姐姐的做法；我们要正确处理人与自然的关系，非法捕杀野生动物是违法的",score:2}
+],
+criteria:"每小题做法+理由各1分"
+},
+{id:4,region:"北京",year:2020,type:"材料分析",topic:"责任",title:"2020北京中考：志愿服务与责任担当",
+material:"2022年北京冬奥会和冬残奥会期间，数万名志愿者用热情专业的服务，向世界展示了中国青年的风采。他们有的负责赛事引导，有的协助媒体工作，有的提供语言翻译服务。\n小王同学利用寒假时间参加了社区志愿服务活动，帮助老年人学习使用智能手机。",
+question:"(1) 志愿者的行为体现了哪些优秀品质？(3分)\n(2) 参加志愿服务对青少年成长有什么意义？(3分)\n(3) 作为中学生，你打算如何服务社会？(2分)",
+score:8,
+standardAnswer:[
+{point:"奉献精神；责任感；团队协作；热爱祖国；积极向上的人生态度",score:3},
+{point:"有利于培养亲社会行为；有利于提升社会实践能力；有利于实现人生价值；有利于促进全面发展",score:3},
+{point:"积极参加公益活动；关心帮助他人；承担社会责任",score:2}
+],
+criteria:"(1)每点1分，答出3点得3分；(2)每点1分，答出3点得3分；(3)开放性作答，言之有理即可"
+},
+{id:5,region:"青海",year:2024,type:"情景探究",topic:"责任",title:"2024青海中考：汇聚德法力量，促进知行合一",
+material:"",
+question:"情境一：甘肃积石山地震后，青海海东部分地区受灾严重，社会各界人士纷纷参与救援。小青就读的学校举行“我为灾区出份力”爱心活动。\n(1) 小青可以怎么做？理由是什么？\n\n情境二：初中生小海由于不适应学习节奏产生厌学情绪，认为学习是自己的权利，可以根据自己情况决定学与不学。\n(2) 你如何劝导小海？理由是什么？",
+score:6,
+standardAnswer:[
+{point:"捐款捐物、写信鼓励、网络宣传等；要养成亲社会行为；关爱社会、服务奉献社会；主动承担社会责任",score:3},
+{point:"不能放弃学习，珍惜学习机会；受教育既是权利也是义务；在行使权利的同时要自觉履行义务",score:3}
+],
+criteria:"每情境做法2分+理由1分，言之有理即可"
+},
+{id:6,region:"四川",year:2024,type:"情景探究",topic:"法治",title:"2024四川广安中考：探究感悟成长",
+material:"",
+question:"情境一：放学后同学小萌拿着数学试卷向小东请教问题，小东却置之不理，转身离开。\n(1) 小东的做法妥当吗？理由是什么？\n\n情境二：考试的时候，小川让“我”给他递纸条。\n(2) 作为小川的好朋友，“我”该怎么做？理由是什么？\n\n情境三：学校要求穿校服，但校服的颜色、款式“我”实在不喜欢。\n(3) “我”该怎么做？理由是什么？",
+score:6,
+standardAnswer:[
+{point:"不妥；我们应该尊重他人，积极关注、重视他人，给予耐心的解答和热情的帮助",score:2},
+{point:"不给小川递纸条；友谊不能没有原则；要遵守考试规则",score:2},
+{point:"按照学校要求穿校服；面对冲突，让个人意愿服从集体的共同要求",score:2}
+],
+criteria:"每情境做法1分+理由1分"
+},
+{id:7,region:"吉林",year:2020,type:"材料分析",topic:"民族团结",title:"2020吉林中考：民族团结和谐共处",
+material:"珲春市地处中朝俄三国交界，是一座多民族聚居的边境口岸城市。在珲春，“同唱一首歌、同跳一支舞、同吃一桌饭”已成为各族群众的生活常态。各民族兄弟姐妹在这里安居乐业，相亲相爱，共建美好家园。",
+question:"(1) 材料体现了怎样的社会主义新型民族关系？(2分)\n(2) “各民族兄弟姐妹相亲相爱”要求公民自觉履行哪项义务？(2分)\n(3) 生活在多民族聚居的地方，我们应该如何与各民族同胞友好相处？(2分)",
+score:6,
+standardAnswer:[
+{point:"平等团结互助和谐",score:2},
+{point:"维护国家统一和全国各民族团结",score:2},
+{point:"尊重各民族的风俗习惯；尊重各民族的语言文字；尊重各民族的宗教信仰",score:2}
+],
+criteria:"每小题2分，第(3)问每点1分"
+},
+{id:8,region:"青海",year:2020,type:"材料分析",topic:"生命安全",title:"2020内蒙古鄂尔多斯中考：生命至上",
+material:"新冠肺炎疫情发生以来，党和政府高度重视，面对严峻的防疫形势，习近平总书记要求，\u201C把人民群众的生命安全和身体健康放在第一位，把疫情防控工作作为当前最重要的工作来抓。\u201D\n生命至上，生命是崇高的、神圣的。中国人民并肩抗疫，只为托起每个生命和希望。",
+question:"(1) 结合材料谈谈你对生命至上的理解。(4分)\n(2) 面对突如其来的疫情挑战，我们应如何守护生命？(4分)",
+score:8,
+standardAnswer:[
+{point:"生命是脆弱的、艰难的，也是坚强的、有力量的；生命是崇高的、神圣的，生命价值高于一切；要敬畏生命、尊重每一个生命；生命至上意味着也必须承认别人的生命同样重要",score:4},
+{point:"关注自己的身体，养成健康的生活方式；增强安全意识和自我保护意识；关注并养护我们的精神，追求真善美",score:4}
+],
+criteria:"(1)答出生命脆弱与坚强(1分)+生命价值(1分)+敬畏生命(1分)+他人生命同样重要(1分)；(2)身体(1分)+安全(1分)+精神(2分)"
+},
+{id:9,region:"重庆",year:2023,type:"小作文",topic:"生态文明",title:"2023重庆模拟：绿色发展，共建美丽中国",
+material:"2023年8月15日是首个全国生态日。习近平总书记强调，生态文明建设是关系中华民族永续发展的根本大计。某市积极推进垃圾分类、绿色出行等环保行动，市民环保意识明显增强。然而，仍有部分企业偷排废水废气，一些居民随意丢弃垃圾，环保形势依然严峻。",
+question:"请运用所学知识，以\u201C共建美丽中国，青年在行动\u201D为题，写一篇不少于200字的短文。\n要求：结合材料，运用道德与法治知识，观点明确，逻辑清晰。",
+score:14,
+standardAnswer:[],
+criteria:"【情境运用4分】材料信息提取(2分)+情境知识对应(2分)\n【知识点运用6分】准确性(2分)+完整性(2分)+多样性(2分)\n【能力维度5分】结构逻辑(2分)+语言表达(2分)+价值判断(1分)\n核心知识点：生态文明、绿色发展、绿水青山就是金山银山、节约资源保护环境基本国策、可持续发展、绿色低碳生活方式、公民环保责任"
+},
+{id:10,region:"山东",year:2024,type:"材料分析",topic:"传统文化",title:"2024山东德州中考：综合探究-五四精神",
+material:"2024年是新中国成立75周年，是五四运动105周年。五四运动孕育了以爱国、进步、民主、科学为主要内容的伟大五四精神。在新时代，广大青年要继承和发扬五四精神，为实现中华民族伟大复兴贡献力量。",
+question:"(1) 五四精神的核心是什么？(2分)\n(2) 为什么要弘扬五四精神？(4分)\n(3) 作为新时代青年，你打算怎样弘扬五四精神？(4分)",
+score:10,
+standardAnswer:[
+{point:"爱国主义",score:2},
+{point:"五四精神是中华民族精神的具体体现；弘扬五四精神有利于增强民族凝聚力；有利于培育和践行社会主义核心价值观；有利于激励青年担当时代使命",score:4},
+{point:"树立远大理想，热爱祖国；努力学习科学文化知识；勇于创新，锐意进取；积极承担社会责任",score:4}
+],
+criteria:"(1)2分；(2)每点2分，答出2点得4分；(3)每点1分，答出4点得4分"
+},
+{id:11,region:"云南",year:2024,type:"情景探究",topic:"法治",title:"2024云南模拟：情境探究学以致用",
+material:"",
+question:"情境一：你在朋友圈无意间看到同学小新发布了一段诋毁自己的文字和图片。\n(1) 你会选择怎么做？理由是什么？\n\n情境二：有不少同学经常光顾学校门口的一些非法小吃摊，存在健康隐患，小安准备反映这一问题。\n(2) 你会选择什么反映方式？理由是什么？\n\n情境三：邻居家经常深夜做网络直播，严重影响你的学习和休息，邻居却说：“这是我家，我什么时间直播是我的自由。”\n(3) 你会选择怎么做？理由是什么？",
+score:6,
+standardAnswer:[
+{point:"要求同学删除信息并向自己道歉；宪法规定公民的人格尊严不受侵犯",score:2},
+{point:"向城管执法部门、卫生监督部门等举报；公民享有依法行使监督的权利",score:2},
+{point:"请求物业或社区协调处理，或拨打12345热线；自由不是随心所欲，公民行使权利不得损害他人合法权益",score:2}
+],
+criteria:"每情境做法1分+理由1分"
+},
+{id:12,region:"江苏",year:2024,type:"情景探究",topic:"生命安全",title:"2024江苏泰州一模：健康成长",
+material:"",
+question:"情境一：近来，小江感到学习压力增大，紧张、烦闷等负面情绪接踵而至，让他不知如何应对。\n(1) 作为好朋友，你会向小江推荐哪些调节情绪的方法？\n\n情境二：上道德与法治课时，小江偷偷在下面写数学作业，被老师发现并狠狠批评。\n(2) 小江应该怎么做？理由是什么？\n\n情境三：初中三年即将走过，小江觉得自己没有什么特长和优势，今生注定平庸。\n(3) 你给小江的建议是什么？",
+score:6,
+standardAnswer:[
+{point:"改变认知评价；转移注意；合理宣泄；放松训练",score:2},
+{point:"虚心接受或正确对待老师的批评；老师的批评意味着关心、提醒和劝诫，可以帮助我们反省和改进",score:2},
+{point:"学会正确认识自己，欣赏自己的独特和优点；积极接纳自己；保持乐观心态",score:2}
+],
+criteria:"(1)每点0.5分，答出4点得2分；(2)做法1分+理由1分；(3)开放性，言之有理2分"
+},
+{id:13,region:"河南",year:2024,type:"材料分析",topic:"法治",title:"2024河南中考：爱国主义教育法与依法治国",material:"为了加强新时代爱国主义教育，传承和弘扬爱国主义精神，我国根据宪法，制定了《中华人民共和国爱国主义教育法》。2022年7月，根据党中央决策部署，落实宪法关于开展爱国主义教育、维护国家统一和民族团结等规定，中央宣传部和全国人大常委会法工委共同牵头启动起草工作。2023年10月24日，十四届全国人大常委会第六次会议表决通过该法，自2024年1月1日起施行。",question:"(1) 《爱国主义教育法》的制定过程是如何体现依法治国基本方略的？(4分)\n(2) 作为中学生，你打算如何践行爱国主义教育法？(4分)",score:8,standardAnswer:[{point:"坚持科学立法；坚持民主立法，草案公开征求意见；依照法定程序立法，由全国人大常委会表决通过；以宪法为立法基础和依据",score:4},{point:"学习了解爱国主义教育法的内容；增强国家安全意识和爱国情感；自觉维护国家统一和民族团结；积极参加爱国主义教育活动",score:4}],criteria:"(1)答出科学立法(1分)+民主立法(1分)+法定程序(1分)+宪法依据(1分)；(2)每点1分，答出4点得4分"},
+{id:14,region:"河北",year:2024,type:"情景探究",topic:"法治",title:"2024河北中考：与法同行，健康成长",material:"",question:"情境一：中学生小孙在放学路上看到歹徒正持刀抢劫路人，悄悄溜走了。\n(1) 小孙的做法正确吗？公民应如何同违法犯罪行为作斗争？\n\n情境二：小张在超市看到小偷偷拿商品，默默记住了小偷的着装和面貌，赶紧将信息提供给超市保安。\n(2) 小张的做法给我们什么启示？\n\n情境三：小李发现有人在某军事重地偷偷拍照。\n(3) 小李应该怎么做？理由是什么？",score:6,standardAnswer:[{point:"不正确；同违法犯罪作斗争是全体公民义不容辞的责任；可以采取非暴力手段如拨打110报警",score:2},{point:"我们要善于斗争，在保护自己的前提下同违法犯罪作斗争；记住特征及时举报是有效方式",score:2},{point:"及时制止或向国家安全机关举报；维护国家安全是公民的基本义务",score:2}],criteria:"每情境做法+理由各1分，言之有理即可"},
+{id:15,region:"湖南",year:2024,type:"材料分析",topic:"核心价值观",title:"2024湖南中考：网络暴力与法治建设",material:"近日，杭州吴女士取快递遭遇造谣，谣言迅速在网上扩散，各种侮辱性言论铺天盖地，邻居、领导、同事议论纷纷，丢了工作、患上抑郁症。面对杀伤力如此巨大的网络暴力，唯有亮出法治利剑。治理网暴需要继续完善刑法、行政法等有关法律条款，形成预防惩治网络暴力的完整法律体系；公安机关应当依法及时立案，检察机关要从严追诉，各级法院要依法严惩。",question:"(1) 结合材料，谈谈面对网络暴力，亮出法治利剑的个人价值与社会价值。(4分)\n(2) 有人认为：只要有关部门加大处罚力度，就能让我们免受网络暴力的伤害。请对此观点进行辨析。(4分)",score:8,standardAnswer:[{point:"个人价值：维护公民的人格尊严权和名誉权，保护公民的合法权益不受侵害；社会价值：维护网络秩序，营造清朗的网络空间，促进社会和谐稳定",score:4},{point:"这个观点是片面的；加大处罚力度有利于震慑网暴行为，但仅靠处罚不够；还需要完善相关法律法规；平台应加强管理；公民要提高网络素养和法治意识；需要全社会共同努力",score:4}],criteria:"(1)个人价值(2分)+社会价值(2分)；(2)辨析：指出片面性(1分)+处罚的意义(1分)+其他措施(2分)"},
+{id:16,region:"福建",year:2024,type:"材料分析",topic:"法治",title:"2024福建中考：厉行法治，校园安全",material:"安徽省第十四届人大常委会第四次会议表决通过《安徽省实施〈中华人民共和国预防未成年人犯罪法〉办法》，《办法》明确，学校应建立健全学生欺凌、性侵害和暴力伤害的预防处置机制、校内纠纷解决机制、突发事件应急处理机制。",question:"(1) 材料体现了法治的要求是什么？(2分)\n(2) 运用法律治理校园欺凌的必要性是什么？(2分)\n(3) 如果你遭遇校园欺凌，你会怎样做？为什么？(2分)",score:6,standardAnswer:[{point:"科学立法；实行良法之治",score:2},{point:"校园欺凌危害学生身心健康；法律具有规范和保护作用；有利于维护校园秩序和学生合法权益",score:2},{point:"及时向老师、家长报告或报警；法律是保护我们合法权益最有力的武器",score:2}],criteria:"每小题2分，言之有理即可"},
+{id:17,region:"陕西",year:2024,type:"情景探究",topic:"责任",title:"2024陕西中考：青春担当，知行合一",material:"",question:"情境一：学校组织义务植树活动，小辉觉得又累又脏，以作业多为借口推脱不去。\n(1) 小辉的做法对吗？理由是什么？\n\n情境二：妈妈让小敏周末去社区做志愿者，小敏答应了，但到了约定时间她又不想去了。\n(2) 你如何劝说小敏？理由是什么？\n\n情境三：班级要选举班长，小杰对好朋友小亮说：选我吧，选上以后我请你吃饭。\n(3) 小杰的做法说明了什么？正确的做法应该是什么？",score:6,standardAnswer:[{point:"不对；参加公益活动是承担社会责任的表现；我们应该积极服务和奉献社会",score:2},{point:"应该信守承诺按时参加；诚信是做人的基本原则；承诺了就应该兑现",score:2},{point:"说明小杰没有正确认识民主选举的意义；选举应该出于公心，根据候选人品德和能力来投票",score:2}],criteria:"每情境做法1分+理由1分"},
+{id:18,region:"安徽",year:2024,type:"材料分析",topic:"法治",title:"2024安徽中考：德治法治相得益彰",material:"谢某在网上看到一则拉新广告，让新用户注册APP就能有报酬。试做后收到了返利佣金。为了拉到更多新人，谢某以7元一个的价格购买手机号和验证码，再去注册新用户做任务获取佣金。在短短两个月时间里，谢某利用他人信息注册了数千个账户，非法获利5134元。2023年8月，洛阳市洛龙区人民法院依法判处谢某有期徒刑八个月，缓刑一年，并处罚金人民币六千元。",question:"(1) 为避免材料中这类案件的再度发生，需要法律和道德如何发挥作用？(4分)\n(2) 从这一案例中，你得到什么警示？(4分)",score:8,standardAnswer:[{point:"法律具有规范和制裁作用，要依法打击违法行为；道德具有教化和约束作用，要加强道德教育；法治与德治相辅相成，缺一不可",score:4},{point:"要增强法治意识，尊法学法守法用法；要增强道德修养，提高辨别是非的能力；要珍惜自由，任何违法行为都要承担法律责任",score:4}],criteria:"(1)法律作用(2分)+道德作用(1分)+德法关系(1分)；(2)每点2分，答出2点得4分"},
+{id:19,region:"海南",year:2023,type:"小作文",topic:"传统文化",title:"2023海南模拟：传承中华优秀传统文化",material:"近年来，《中国诗词大会》《典籍里的中国》《国家宝藏》等文化节目广受好评，掀起了一股传统文化热。某校开展传统文化进校园活动，组织学生学习书法、国画、京剧等传统文化艺术。但也有同学认为：现在科技这么发达，传统文化已经过时了，没必要花时间去学习。",question:"请运用所学知识，以传统文化为主题，写一篇不少于200字的短文。\n要求：结合材料，运用道德与法治知识，观点明确，逻辑清晰。",score:14,standardAnswer:[],criteria:"【情境运用4分】材料信息提取(2分)+情境知识对应(2分)\n【知识点运用6分】准确性(2分)+完整性(2分)+多样性(2分)\n【能力维度5分】结构逻辑(2分)+语言表达(2分)+价值判断(1分)\n核心知识点：中华优秀传统文化的特点和价值、文化自信、创造性转化和创新性发展、弘扬中华传统美德、社会主义核心价值观"},
+{id:20,region:"黑龙江",year:2024,type:"情景探究",topic:"生命安全",title:"2024黑龙江模拟：珍爱生命，健康成长",material:"",question:"情境一：小华在体育课上不小心摔伤了腿，医生建议休息一周。但下周就要期末考试了，小华不想耽误学习，决定带伤上学。\n(1) 你会给小华什么建议？理由是什么？\n\n情境二：考试没考好，小明觉得天都塌了，把自己关在房间里不吃不喝。\n(2) 作为好朋友，你会怎样帮助小明？\n\n情境三：学校组织消防安全演练，有些同学觉得只是走形式，嘻嘻哈哈不当回事。\n(3) 你会怎么对这些同学说？",score:6,standardAnswer:[{point:"建议小华听从医生建议适当休息；身体健康是生命安全和幸福生活的基础，不能只顾学习不顾身体",score:2},{point:"安慰和鼓励小明，帮助他缓解负面情绪；告诉他挫折是成长的一部分，要学会坦然面对挫折，增强生命的韧性",score:2},{point:"安全演练不是走形式，是为了提高自我保护能力；面对突发事件要有安全意识和自救自护能力",score:2}],criteria:"每情境建议/做法1分+理由1分"},
+{id:21,region:"内蒙古",year:2024,type:"材料分析",topic:"生态文明",title:"2024内蒙古模拟：绿色发展，守护北疆生态",material:"内蒙古是我国北方重要的生态安全屏障。近年来，内蒙古大力实施京津风沙源治理、天然林保护等重点生态工程，森林覆盖率和草原综合植被盖度持续提高。但同时也面临部分草原退化、土地沙化等挑战。某市开展垃圾分类和节能宣传活动，号召市民践行绿色生活方式。",question:"(1) 内蒙古为什么要大力实施生态保护工程？(3分)\n(2) 作为中学生，你能为绿色发展做些什么？(3分)\n(3) 践行绿色生活方式体现了教材中的哪些国策和战略？(2分)",score:8,standardAnswer:[{point:"保护生态环境就是保护生产力；有利于促进人与自然和谐共生；有利于实现可持续发展；有利于建设美丽中国",score:3},{point:"节约资源，减少浪费；践行绿色出行；做好垃圾分类；积极参与环保宣传活动",score:3},{point:"节约资源和保护环境的基本国策；可持续发展战略",score:2}],criteria:"(1)每点1分，答出3点得3分；(2)每点1分，答出3点得3分；(3)每个1分"},
+{id:22,region:"广东",year:2024,type:"材料分析",topic:"法治",title:"2024广东中考：未成年人网络保护",material:"2023年10月，国家网信办发布《移动互联网未成年人模式建设指南（征求意见稿）》，宣布将全面升级青少年模式为未成年人模式。公众可通过电子邮件和信函两种途径提出反馈意见。2024年1月1日，《未成年人网络保护条例》正式施行，这是我国第一部专门性的未成年人网络保护综合立法。",question:"(1) 国家为什么要给予未成年人特殊的网络保护？(3分)\n(2) 《未成年人网络保护条例》的出台过程说明了什么？(3分)\n(3) 作为未成年人，我们应该如何正确使用网络？(2分)",score:8,standardAnswer:[{point:"未成年人身心发育不成熟，辨别能力和自控能力较弱；容易受到不良信息的影响和不法侵害；保护未成年人是国家和社会的共同责任",score:3},{point:"说明我国坚持科学立法、民主立法；体现以人民为中心的发展思想；公民积极参与，行使当家作主的权利",score:3},{point:"提高媒介素养，学会信息辨别；遵守网络规则，不沉迷网络；增强自我保护意识",score:2}],criteria:"(1)每点1分，答出3点得3分；(2)每点1分，答出3点得3分；(3)每点约1分"},
+{id:23,region:"吉林",year:2024,type:"情景探究",topic:"宪法",title:"2024吉林模拟：宪法在我身边",material:"",question:"情境一：小芳发现学校附近有一家网吧违规接纳未成年人上网。\n(1) 小芳可以怎么做？这体现了宪法的什么原则？\n\n情境二：小亮的爸爸说：宪法离我们的生活太远了，跟普通老百姓没什么关系。\n(2) 你如何回应小亮爸爸的说法？\n\n情境三：社区正在组织宪法宣传日活动，邀请居民参加。\n(3) 你认为开展宪法宣传有什么意义？",score:6,standardAnswer:[{point:"向文化部门或相关部门举报；体现了尊重和保障人权的宪法原则",score:2},{point:"宪法与我们生活息息相关；宪法规定公民的基本权利和义务；宪法是治国安邦的总章程，是公民权利的保障书",score:2},{point:"有利于增强公民的宪法意识；有利于维护宪法权威；有利于全面推进依法治国",score:2}],criteria:"每情境做法/观点1分+理由/意义1分"},
+{id:24,region:"山东",year:2024,type:"小作文",topic:"国家安全",title:"2024山东模拟：维护国家安全，人人有责",material:"2024年4月15日是第九个全民国家安全教育日。今年活动主题为总体国家安全观，创新引领10周年。近年来，危害国家安全的案件时有发生：有人非法拍摄军事基地照片并在网上传播，有人为境外间谍机构搜集情报，还有人在社交媒体上泄露国家秘密。国家安全不仅关系国家的生存和发展，也与我们每个人的切身利益密切相关。",question:"请运用所学知识，以维护国家安全为主题，写一篇不少于200字的短文。\n要求：结合材料，运用道德与法治知识，观点明确，逻辑清晰。",score:14,standardAnswer:[],criteria:"【情境运用4分】材料信息提取(2分)+情境知识对应(2分)\n【知识点运用6分】准确性(2分)+完整性(2分)+多样性(2分)\n【能力维度5分】结构逻辑(2分)+语言表达(2分)+价值判断(1分)\n核心知识点：总体国家安全观、国家安全的含义和重要性、公民维护国家安全的义务、维护国家安全的方式、国家安全与个人利益的关系"}
+];
+
+
+
+/* === 页面切换 === */
+function switchPage(page){
+  var btns=document.querySelectorAll(".page-btn");
+  for(var i=0;i<btns.length;i++){
+    if((i===0&&page==="grading")||(i===1&&page==="questionbank"))btns[i].classList.add("active");
+    else btns[i].classList.remove("active");
+  }
+  document.getElementById("pageGrading").classList.toggle("active",page==="grading");
+  document.getElementById("pageQB").classList.toggle("active",page==="questionbank");
+  if(page==="questionbank"&&!_qbRendered){renderQBList();_qbRendered=true;}
+}
+var _qbRendered=false;
+
+/* === 题库筛选与渲染 === */
+function getFilteredQB(){
+  var region=document.getElementById("filterRegion").value;
+  var type=document.getElementById("filterType").value;
+  var topic=document.getElementById("filterTopic").value;
+  var search=(document.getElementById("filterSearch").value||"").toLowerCase();
+  var result=[];
+  for(var i=0;i<QB_DATA.length;i++){
+    var q=QB_DATA[i];
+    if(region&&q.region!==region)continue;
+    if(type&&q.type!==type)continue;
+    if(topic&&q.topic!==topic)continue;
+    if(search){
+      var full=(q.title+" "+q.question+" "+q.material+" "+q.topic).toLowerCase();
+      if(full.indexOf(search)<0)continue;
+    }
+    result.push(q);
+  }
+  return result;
+}
+function filterQuestions(){_qbRendered=false;renderQBList();_qbRendered=true;}
+function renderQBList(){
+  var list=getFilteredQB();
+  var countEl=document.getElementById("qbCount");
+  countEl.innerHTML='共 <strong>'+list.length+'</strong> 道题目';
+  var container=document.getElementById("qbList");
+  if(!list.length){container.innerHTML='<div class="qb-empty"><i class="fas fa-inbox"></i><p>没有找到匹配的题目</p><p style="font-size:12px;margin-top:8px">试试调整筛选条件</p></div>';return;}
+  var h="";
+  for(var i=0;i<list.length;i++){
+    var q=list[i];
+    var matPreview=q.material?q.material.substring(0,80)+(q.material.length>80?"...":""):"（无材料，情景探究题）";
+    var hasStd=q.standardAnswer&&q.standardAnswer.length>0;
+    h+='<div class="qb-card" id="qbCard'+q.id+'" onclick="showQBDetail('+q.id+')">';
+    h+='<div class="qb-card-header">';
+    h+='<span class="qb-tag region">'+q.region+'</span>';
+    h+='<span class="qb-tag year">'+q.year+'年</span>';
+    h+='<span class="qb-tag type">'+q.type+'</span>';
+    h+='<span class="qb-tag topic">'+q.topic+'</span>';
+    h+='<span class="qb-card-title">'+escHtml(q.title)+'</span>';
+    h+='</div>';
+    h+='<div class="qb-card-body">';
+    if(q.material)h+='<div class="qb-material"><i class="fas fa-file-lines" style="margin-right:6px;color:var(--primary)"></i>'+escHtml(matPreview)+'</div>';
+    h+='<div class="qb-question">'+escHtml(q.question.split("\n")[0])+(q.question.split("\n").length>1?'...':'')+'</div>';
+    h+='</div>';
+    h+='<div class="qb-card-footer">';
+    h+='<span class="qb-score">满分 <strong>'+q.score+'</strong> 分'+(hasStd?' · 含标准答案':'')+'</span>';
+    h+='<div class="qb-actions">';
+    h+='<button class="btn btn-primary" onclick="event.stopPropagation();importToGrading('+q.id+')"><i class="fas fa-arrow-right"></i> 导入批改</button>';
+    h+='<button class="btn btn-secondary" onclick="event.stopPropagation();showQBDetail('+q.id+')"><i class="fas fa-eye"></i> 详情</button>';
+    h+='</div></div></div>';
+  }
+  container.innerHTML=h;
+}
+
+/* === 题目详情弹窗 === */
+function showQBDetail(id){
+  var q=null;
+  for(var i=0;i<QB_DATA.length;i++){if(QB_DATA[i].id===id){q=QB_DATA[i];break;}}
+  if(!q)return;
+  document.getElementById("qbModalTitle").textContent=q.title;
+  var h='';
+  h+='<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">';
+  h+='<span class="qb-tag region">'+q.region+'</span>';
+  h+='<span class="qb-tag year">'+q.year+'年</span>';
+  h+='<span class="qb-tag type">'+q.type+'</span>';
+  h+='<span class="qb-tag topic">'+q.topic+'</span>';
+  h+='<span style="font-size:13px;color:var(--gray-500);margin-left:auto">满分 <strong>'+q.score+'</strong> 分</span>';
+  h+='</div>';
+  if(q.material)h+='<div class="qb-material"><strong style="display:block;margin-bottom:6px"><i class="fas fa-file-lines"></i> 给定材料</strong>'+escHtml(q.material).replace(/\n/g,'<br>')+'</div>';
+  h+='<div style="margin-bottom:16px"><strong style="display:block;margin-bottom:8px;font-size:14px"><i class="fas fa-question-circle" style="color:var(--primary)"></i> 题目内容</strong><div style="font-size:14px;line-height:1.8;background:var(--gray-50);padding:16px;border-radius:8px">'+escHtml(q.question).replace(/\n/g,'<br>')+'</div></div>';
+  if(q.standardAnswer&&q.standardAnswer.length>0){
+    h+='<div class="qb-answer-section"><h4><i class="fas fa-check-circle"></i> 标准答案</h4>';
+    for(var i=0;i<q.standardAnswer.length;i++){
+      var pt=q.standardAnswer[i];
+      h+='<div class="ref-point"><strong>'+(i+1)+'.</strong> '+escHtml(pt.point)+'<span class="ref-score">'+pt.score+'分</span></div>';
+    }
+    h+='</div>';
+  }
+  if(q.criteria){
+    h+='<div class="qb-criteria-section"><h4><i class="fas fa-ruler"></i> 评分标准</h4><p>'+escHtml(q.criteria).replace(/\n/g,'<br>')+'</p></div>';
+  }
+  h+='<div style="margin-top:20px;text-align:center"><button class="btn btn-primary" onclick="importToGrading('+q.id+');closeQBModal()"><i class="fas fa-arrow-right"></i> 导入智能批改</button></div>';
+  document.getElementById("qbModalBody").innerHTML=h;
+  document.getElementById("qbModal").classList.add("active");
+}
+function closeQBModal(){document.getElementById("qbModal").classList.remove("active");}
+
+/* === 导入到批改 === */
+function importToGrading(id){
+  var q=null;
+  for(var i=0;i<QB_DATA.length;i++){if(QB_DATA[i].id===id){q=QB_DATA[i];break;}}
+  if(!q)return;
+  switchPage("grading");
+  setTimeout(function(){
+    document.getElementById("material").value=q.material||"";
+    document.getElementById("question").value=q.question;
+    document.getElementById("studentAnswer").value="";
+    document.getElementById("totalScore").value=q.score;
+    if(q.type==="小作文"){switchType("essay");}else{switchType("shortAnswer");}
+    clearStdAnswer();
+    if(q.standardAnswer&&q.standardAnswer.length>0){
+      stdPoints=[];
+      for(var i=0;i<q.standardAnswer.length;i++){
+        stdPoints.push({point:q.standardAnswer[i].point,score:q.standardAnswer[i].score});
+      }
+      renderStdPoints();
+      document.getElementById("stdToggle").classList.add("open");
+      document.getElementById("stdBody").classList.add("open");
+    }
+    if(q.criteria&&q.type==="小作文"){
+      document.getElementById("stdEssayCriteria").value=q.criteria;
+      document.getElementById("stdToggle").classList.add("open");
+      document.getElementById("stdBody").classList.add("open");
+    }
+    document.getElementById("reportCard").classList.remove("active");
+    document.getElementById("kpCard").style.display="none";
+    showToast("已导入题目，请在右侧填写答案后点击批改");
+    window.scrollTo({top:0,behavior:"smooth"});
+  },100);
+}
+
+/* === Init === */
+renderStdPoints();
+updateScoreHint();
+</script>
+</body>
+</html>
