@@ -283,23 +283,19 @@ textarea.tall{min-height:160px}
                   <textarea id="stdEssayCriteria" placeholder="例如：&#10;【情境运用4分】提取材料信息(2分)+情境对应(2分)&#10;【知识点运用6分】准确(2分)+完整(2分)+多样(2分)&#10;【能力维度5分】结构(2分)+语言(2分)+价值(1分)" style="min-height:120px;background:#fff"></textarea>
                   <!-- 分列OCR上传 -->
                   <div id="essayColOcrSection" style="margin-top:10px;padding:10px 12px;background:#fefce8;border-radius:8px;border:1px solid #fde68a">
-                    <p style="font-size:12px;font-weight:600;color:#92400e;margin:0 0 8px 0">📸 评分标准分列提取（3列/4列图片逐张上传）</p>
+                    <p style="font-size:12px;font-weight:600;color:#92400e;margin:0 0 8px 0">📸 评分标准分列提取（按维度逐列上传截图）</p>
                     <div style="display:flex;gap:8px;flex-wrap:wrap">
                       <label class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin:0;cursor:pointer">
-                        <i class="fas fa-columns"></i> 第1列
+                        <i class="fas fa-columns"></i> 情境分析
                         <input type="file" accept="image/*" onchange="doColOCR(this,0)" style="display:none">
                       </label>
                       <label class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin:0;cursor:pointer">
-                        <i class="fas fa-columns"></i> 第2列
+                        <i class="fas fa-columns"></i> 知识应用
                         <input type="file" accept="image/*" onchange="doColOCR(this,1)" style="display:none">
                       </label>
                       <label class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin:0;cursor:pointer">
-                        <i class="fas fa-columns"></i> 第3列
+                        <i class="fas fa-columns"></i> 综合能力
                         <input type="file" accept="image/*" onchange="doColOCR(this,2)" style="display:none">
-                      </label>
-                      <label class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin:0;cursor:pointer">
-                        <i class="fas fa-columns"></i> 第4列(选填)
-                        <input type="file" accept="image/*" onchange="doColOCR(this,3)" style="display:none">
                       </label>
                     </div>
                     <div id="colOcrStatus" style="font-size:11px;color:#92400e;margin-top:6px"></div>
@@ -945,19 +941,20 @@ function clearStdAnswer(){
   stdPoints=[];renderStdPoints();
   var ea=document.getElementById("stdEssayAnswer");if(ea)ea.value="";
   var ec=document.getElementById("stdEssayCriteria");if(ec)ec.value="";
-  _colOcrData=["","","",""];_colOcrDone=[false,false,false,false];
+  _colOcrData=["","",""];_colOcrDone=[false,false,false];
   var cs=document.getElementById("colOcrStatus");if(cs)cs.textContent="";
   showToast("已清除自定义标准");
 }
 
 /* === 分列OCR === */
-var _colOcrData=["","","",""];
-var _colOcrDone=[false,false,false,false];
+var _colOcrData=["","",""];
+var _colOcrDone=[false,false,false];
 
 function doColOCR(input,colIdx){
   var file=input.files[0];if(!file)return;
   var status=document.getElementById("colOcrStatus");
-  status.textContent="⏳ 正在识别第"+(colIdx+1)+"列...";
+  var labels=["情境分析","知识应用","综合能力"];
+  status.textContent="⏳ 正在识别【"+labels[colIdx]+"】列...";
   if(typeof Tesseract==="undefined"){status.textContent="⚠️ OCR未加载，请刷新页面重试";return;}
   Tesseract.recognize(file,"chi_sim+eng",{logger:function(){}}).then(function(r){
     var text=r.data.text?r.data.text.trim():"";
@@ -967,17 +964,16 @@ function doColOCR(input,colIdx){
       var colText=cleaned.join("\n");
       _colOcrData[colIdx]=colText;
       _colOcrDone[colIdx]=true;
-      // 实时合并所有已完成列到评分标准细则
       mergeColOcrToCriteria();
-      var doneCount=0;for(var j=0;j<4;j++)if(_colOcrDone[j])doneCount++;
-      status.textContent="✅ 第"+(colIdx+1)+"列识别完成（已识别"+doneCount+"/3~4列）";
+      var doneCount=0;for(var j=0;j<3;j++)if(_colOcrDone[j])doneCount++;
+      status.textContent="✅ 【"+labels[colIdx]+"】识别完成（已识别"+doneCount+"/3列）";
       status.style.color="#16a34a";
     }else{
-      status.textContent="⚠️ 第"+(colIdx+1)+"列识别为空";
+      status.textContent="⚠️ 【"+labels[colIdx]+"】识别为空";
       status.style.color="#d97706";
     }
   }).catch(function(e){
-    status.textContent="❌ 第"+(colIdx+1)+"列识别失败："+e.message;
+    status.textContent="❌ 【"+labels[colIdx]+"】识别失败："+e.message;
     status.style.color="#dc2626";
   });
 }
@@ -985,14 +981,13 @@ function doColOCR(input,colIdx){
 function mergeColOcrToCriteria(){
   var ec=document.getElementById("stdEssayCriteria");if(!ec)return;
   var parts=[];
-  var labels=["【水平四·优秀】","【水平三·良好】","【水平二·及格】","【水平一·待提高】"];
-  for(var i=0;i<4;i++){
+  var labels=["【情境分析】","【知识应用】","【综合能力】"];
+  for(var i=0;i<3;i++){
     if(_colOcrDone[i]&&_colOcrData[i]){
       parts.push(labels[i]+"\n"+_colOcrData[i]);
     }
   }
   if(parts.length>0){
-    var existing=ec.value.trim();
     ec.value=parts.join("\n\n");
   }
 }
