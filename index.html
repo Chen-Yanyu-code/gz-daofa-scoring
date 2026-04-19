@@ -225,7 +225,7 @@ textarea.tall{min-height:160px}
               <div class="score-row"><input type="number" id="totalScore" value="6" min="2" max="20" onchange="updateStdTotal();updateScoreHint()"><span>分</span></div>
               <div class="score-row" id="matRatioRow" style="padding-left:12px;border-left:2px solid var(--gray-200)"><input type="number" id="matRatio" value="40" min="0" max="100" step="5" onchange="updateScoreHint();updateCustomRefs()" style="width:72px"><span>% 材料分</span></div>
             </div>
-            <div style="font-size:11px;color:var(--gray-500);margin-top:4px" id="scoreHint">&#x1F4A1; 简答题建议6-8分 &#xB7; 小作文建议14分（情境4+知识6+能力5-1附加）</div>
+            <div style="font-size:11px;color:var(--gray-500);margin-top:4px" id="scoreHint">&#x1F4A1; 简答题建议6-8分 &#xB7; 小作文默认15分（分档评分：水平四12-15/三8-11/二4-7/一0-3）</div>
           </div>
           <div class="form-group">
             <label>给定材料 <span class="required">*</span></label>
@@ -625,8 +625,23 @@ function gradeShortAns(answer,refs,material,totalScore){
   return res;
 }
 
-/* === 小作文引擎（广州中考标准14分制） === */
-function getEssayDS(ts){var c=ts-1;var s=Math.round(c*4/14)||4;var k=Math.round(c*6/14)||6;var a=ts-s-k;if(a<=0)a=5;return{s:s,k:k,a:a};}
+/* === 小作文引擎（广州中考分档评分制） === */
+/* 三维度：情境分析 + 知识应用 + 综合能力，满分15分标准下约 3-4 + 5-6 + 4-5 */
+function getEssayDS(ts){
+  /* 按比例分配: 情境分析约25%, 知识应用约40%, 综合能力约35% */
+  var s=Math.round(ts*0.25),k=Math.round(ts*0.4),a=ts-s-k;
+  if(s<1)s=1;if(a<1)a=1;k=ts-s-k;if(k<1)k=1;
+  return{s:s,k:k,a:a};
+}
+/* 分档标准 */
+function getEssayLevel(score,ts){
+  if(ts<=0)return{l:"水平一",lRange:"0\u2013"+Math.floor(ts*0.2)+"\u5206",lIdx:1,desc:"\u672A\u8FBE\u5230\u57FA\u672C\u8981\u6C42",lColor:"#ef4444"};
+  var r=score/ts;
+  if(r>=0.8)return{l:"\u6C34\u5E73\u56DB",lRange:Math.ceil(ts*0.8)+"\u2013"+ts+"\u5206",lIdx:4,desc:"\u4F18\u79C0",lColor:"#059669"};
+  if(r>=0.53)return{l:"\u6C34\u5E73\u4E09",lRange:Math.ceil(ts*0.53)+"\u2013"+Math.ceil(ts*0.8-1)+"\u5206",lIdx:3,desc:"\u826F\u597D",lColor:"#2563eb"};
+  if(r>=0.27)return{l:"\u6C34\u5E73\u4E8C",lRange:Math.ceil(ts*0.27)+"\u2013"+Math.ceil(ts*0.53-1)+"\u5206",lIdx:2,desc:"\u53CA\u683C",lColor:"#d97706"};
+  return{l:"\u6C34\u5E73\u4E00",lRange:"0\u2013"+Math.ceil(ts*0.27-1)+"\u5206",lIdx:1,desc:"\u5F85\u63D0\u9AD8",lColor:"#ef4444"};
+}
 
 function genEssayRef(question,material,totalScore,kps){
   var top=kps.slice(0,4),ds=getEssayDS(totalScore);
@@ -651,64 +666,102 @@ function genEssayRef(question,material,totalScore,kps){
 
 function gradeEssay(answer,eref,material,totalScore){
   var res={totalScore:totalScore,earnedScore:0,dimensionScores:[],feedback:[],suggestions:[],level:""};
-  var a=answer||"",lower=a.toLowerCase(),ds=eref.ds||getEssayDS(totalScore);
-  var matKws=extractMaterialKeywords(material),matUsed=softMatchList(lower,matKws),matRatio=matKws.length>0?matUsed.length/matKws.length:0;
-  var extS=matRatio>=0.4?2:matRatio>=0.2?1:0;
-  var sitL=["材料","体现","说明","反映","表明","正如","例如","可见","从材料"];
-  var slc=0;for(var i=0;i<sitL.length;i++){if(lower.indexOf(sitL[i])>=0)slc++;}
-  var lnkS=slc>=2?2:slc>=1?1:0;
-  var sitA={score:Math.min(extS+lnkS,ds.s),extS:extS,lnkS:lnkS,matchedMatKws:matUsed};
+  var a=answer||"",lower=a.toLowerCase(),ds=getEssayDS(totalScore);
 
+  /* ── 维度一：情境分析（信息整理） ── */
+  var matKws=extractMaterialKeywords(material),matUsed=softMatchList(lower,matKws),matR=matKws.length>0?matUsed.length/matKws.length:0;
+  /* 信息提取：材料关键词覆盖率 */
+  var extS=matR>=0.5?2:matR>=0.3?1:0;
+  /* 信息结构化：是否有序组织材料信息 */
+  var sitL=["材料","体现","说明","反映","表明","正如","例如","可见","从材料中","正如材料"];
+  var slc=0;for(var i=0;i<sitL.length;i++){if(lower.indexOf(sitL[i])>=0)slc++;}
+  var lnkS=slc>=3?2:slc>=1?1:0;
+  /* 突显关键信息：是否抓住了核心要点 */
+  var focusKws=material?extractMaterialKeywords(material).slice(0,5):[];
+  var focusHit=0;for(var i=0;i<focusKws.length;i++){if(lower.indexOf(focusKws[i])>=0)focusHit++;}
+  var focus=focusKws.length>0?(focusHit>=4?1:focusHit>=2?0.5:0):0;
+  var sitTotal=extS+lnkS+focus;
+  var sitE=Math.min(Math.round(sitTotal/ds.s>1?1:sitTotal),ds.s);
+  /* 分档描述 */
+  var sitDesc=sitE>=Math.ceil(ds.s*0.75)?"信息整理准确、完整、结构化，能突显关键信息":sitE>=Math.ceil(ds.s*0.5)?"信息整理较准确、完整，较能突显关键信息":sitE>=Math.ceil(ds.s*0.25)?"信息整理欠准确完整，不能突出关键信息":"信息整理不准确，缺乏关键信息";
+  var sitA={score:sitE,extS:extS,lnkS:lnkS,focus:focus,matchedMatKws:matUsed,desc:sitDesc};
+
+  /* ── 维度二：知识应用 ── */
   var pt=extractProTerms(lower);
-  var acc=pt.length>=2?2:pt.length>=1?1:0;
+  /* 准确性：专业术语使用 */
+  var acc=pt.length>=3?2:pt.length>=1?1:0;
+  /* 完整性与灵活性：完整学科语句 */
   var cp=["是.*的","要.*做","必须","应该","需要","有利于","有助于","保障","维护","促进","推动","坚持","贯彻","落实","弘扬","培养","树立","增强","提高"];
   var hasC=false;for(var i=0;i<cp.length;i++){if(new RegExp(cp[i]).test(lower)){hasC=true;break;}}
   var comp=hasC&&pt.length>=2?2:hasC||pt.length>=2?1:0;
+  /* 综合性：多板块知识点调用 */
   var areaNames=["法治","创新","生态","民主","文化","梦想","责任","公平"];
   var areaKws=[["法治","依法","宪法","法制","法律"],["创新","科技","改革"],["生态","环境","绿色","低碳"],["民主","人民","权利","权益","平等"],["文化","传统","自信","传承"],["梦","复兴","奋斗","现代化"],["责任","担当","奉献","义务"],["公平","正义","共富","共享"]];
-  var areasSet={},areas=[];
-  for(var i=0;i<areaKws.length;i++){var ks=areaKws[i],hit=false;for(var j=0;j<ks.length;j++){if(lower.indexOf(ks[j])>=0){hit=true;break;}}if(hit)areas.push(areaNames[i]);}
+  var areas=[];for(var i=0;i<areaKws.length;i++){var ks=areaKws[i],hit=false;for(var j=0;j<ks.length;j++){if(lower.indexOf(ks[j])>=0){hit=true;break;}}if(hit)areas.push(areaNames[i]);}
   var div=areas.length>=3?2:areas.length>=2?1:0;
-  var knoA={score:Math.min(acc+comp+div,ds.k),acc:acc,comp:comp,div:div,terms:pt,areas:areas};
+  /* 紧扣关键信息展开论述（与材料结合度） */
+  var expand=0;
+  var expP=["不仅","而且","既","又","更重要的是","特别是","具体来说","从.*来看","这是因为","所以说"];
+  for(var i=0;i<expP.length;i++){if(new RegExp(expP[i]).test(lower)){expand++;break;}}
+  var expandS=expand>=1&&sitE>=Math.ceil(ds.s*0.5)?1:0;
+  var knoTotal=acc+comp+div+expandS;
+  var knoE=Math.min(Math.round(knoTotal*ds.k/6),ds.k);
+  var knoDesc=knoE>=Math.ceil(ds.k*0.75)?"全面、准确、灵活调用答题所需知识，紧扣关键信息展开论述":knoE>=Math.ceil(ds.k*0.5)?"较为全面准确地调用知识，基本扣住关键信息":knoE>=Math.ceil(ds.k*0.25)?"较少调用知识，仅将知识与信息简单联系":"没有或极少调用所需知识，多为无关内容";
+  var knoA={score:knoE,acc:acc,comp:comp,div:div,expand:expandS,terms:pt,areas:areas,desc:knoDesc};
 
-  var hasI=a.length>40&&(lower.indexOf("材料")>=0||lower.indexOf("体现")>=0||lower.indexOf("说明")>=0||lower.indexOf("反映")>=0);
+  /* ── 维度三：综合能力 ── */
+  /* 结构与逻辑 */
+  var hasI=a.length>40&&(lower.indexOf("材料")>=0||lower.indexOf("体现")>=0||lower.indexOf("说明")>=0);
   var hasB=a.length>120;
   var hasCC=lower.indexOf("综上")>=0||lower.indexOf("因此")>=0||lower.indexOf("总之")>=0||lower.indexOf("总结")>=0||lower.indexOf("所以")>=0;
-  var sc=[hasI,hasB,hasCC];var scCount=0;for(var i=0;i<sc.length;i++)if(sc[i])scCount++;
+  var scCount=0;if(hasI)scCount++;if(hasB)scCount++;if(hasCC)scCount++;
   var str=scCount>=3?2:scCount>=2?1:0;
+  /* 学科语言规范与表达流畅 */
   var lw=["因为","所以","因此","首先","其次","另外","再者","不仅","而且","既","又","一方面","另一方面","同时","此外"];
   var lf=0;for(var i=0;i<lw.length;i++){if(lower.indexOf(lw[i])>=0)lf++;}
   var len=a.length>=250;
   var lang=(lf>=3&&len)?2:(lf>=1||a.length>=150)?1:0;
-  var vw=["正确","积极","应该","弘扬","践行","树立","增强","培养","传承","坚持"];
+  /* 立意与价值判断 */
+  var vw=["正确","积极","应该","弘扬","践行","树立","增强","培养","传承","坚持","担当","奉献"];
   var nw=["错误","消极","不应该","不能"];
   var vwCount=0;for(var i=0;i<vw.length;i++){if(lower.indexOf(vw[i])>=0)vwCount++;}
   var nwHit=false;for(var i=0;i<nw.length;i++){if(lower.indexOf(nw[i])>=0){nwHit=true;break;}}
-  var val=vwCount>=2&&!nwHit?1:vwCount>=2?1:0;
-  var abiA={score:Math.min(str+lang+val,ds.a),str:str,lang:lang,val:val};
+  /* 立意高远：有感悟升华 */
+  var insp=["我们","作为","应该","贡献","力量","责任","使命","青少年","学生","公民"];
+  var inspCount=0;for(var i=0;i<insp.length;i++){if(lower.indexOf(insp[i])>=0)inspCount++;}
+  var val=0;
+  if(vwCount>=2&&!nwHit&&inspCount>=2)val=2;
+  else if(vwCount>=1&&!nwHit)val=1;
+  var abiTotal=str+lang+val;
+  var abiE=Math.min(Math.round(abiTotal*ds.a/5),ds.a);
+  var abiDesc=abiE>=Math.ceil(ds.a*0.75)?"立意高远、事理交融、结构严谨、语言规范":abiE>=Math.ceil(ds.a*0.5)?"有一定立意、事理有涉及、结构较严谨":abiE>=Math.ceil(ds.a*0.25)?"立意不高、知识与情境对应差、结构性弱":"立意低或无立意，答非所问，结构混乱";
+  var abiA={score:abiE,str:str,lang:lang,val:val,desc:abiDesc};
 
+  /* ── 汇总分档 ── */
   var dims=[
-    {name:"情境运用",max:ds.s,earned:sitA.score,ratio:Math.round(sitA.score/Math.max(ds.s,1)*100),comment:sitA.score>=Math.ceil(ds.s*0.8)?"提取了"+sitA.matchedMatKws.length+"个材料关键词，情境对应准确":sitA.score>=Math.ceil(ds.s*0.5)?"材料提取能力一般，仅引用"+sitA.matchedMatKws.length+"个关键词":"未能有效提取和运用材料情境",sub:[{label:"材料信息提取",max:2,earned:Math.min(sitA.extS,2)},{label:"情境知识对应",max:2,earned:Math.min(sitA.lnkS,2)}]},
-    {name:"知识点运用",max:ds.k,earned:knoA.score,ratio:Math.round(knoA.score/Math.max(ds.k,1)*100),comment:knoA.terms.length>0?"运用了"+knoA.terms.join("、")+"等"+knoA.terms.length+"个专业术语，覆盖"+knoA.areas.length+"个板块":"未使用道法专业术语",sub:[{label:"准确性",max:2,earned:Math.min(knoA.acc,2)},{label:"完整性",max:2,earned:Math.min(knoA.comp,2)},{label:"多样性",max:2,earned:Math.min(knoA.div,2)}]},
-    {name:"能力维度",max:ds.a,earned:abiA.score,ratio:Math.round(abiA.score/Math.max(ds.a,1)*100),comment:abiA.score>=Math.ceil(ds.a*0.8)?"逻辑清晰、表达规范、价值导向正确":abiA.score>=Math.ceil(ds.a*0.5)?"能力表现一般，需加强结构或表达":"结构、表达或价值导向需大幅改进",sub:[{label:"结构逻辑",max:2,earned:Math.min(abiA.str,2)},{label:"语言表达",max:2,earned:Math.min(abiA.lang,2)},{label:"价值判断",max:1,earned:Math.min(abiA.val,1)}]}
+    {name:"\u60C5\u5883\u5206\u6790",max:ds.s,earned:sitE,ratio:Math.round(sitE/Math.max(ds.s,1)*100),comment:sitA.desc,sub:[{label:"\u4FE1\u606F\u63D0\u53D6",max:2,earned:Math.min(sitA.extS,2)},{label:"\u7ED3\u6784\u5316\u8868\u8FBE",max:2,earned:Math.min(sitA.lnkS,2)},{label:"\u7A81\u663E\u5173\u952E\u4FE1\u606F",max:1,earned:Math.min(Math.round(sitA.focus),1)}]},
+    {name:"\u77E5\u8BC6\u5E94\u7528",max:ds.k,earned:knoE,ratio:Math.round(knoE/Math.max(ds.k,1)*100),comment:knoA.desc,sub:[{label:"\u51C6\u786E\u6027",max:2,earned:Math.min(knoA.acc,2)},{label:"\u5B8C\u6574\u6027",max:2,earned:Math.min(knoA.comp,2)},{label:"\u7EFC\u5408\u6027/\u591A\u677F\u5757",max:2,earned:Math.min(knoA.div,2)},{label:"\u5C55\u5F00\u8BBA\u8FF0",max:1,earned:Math.min(knoA.expand,1)}]},
+    {name:"\u7EFC\u5408\u80FD\u529B",max:ds.a,earned:abiE,ratio:Math.round(abiE/Math.max(ds.a,1)*100),comment:abiA.desc,sub:[{label:"\u7ED3\u6784\u903B\u8F91",max:2,earned:Math.min(abiA.str,2)},{label:"\u8BED\u8A00\u8868\u8FBE",max:2,earned:Math.min(abiA.lang,2)},{label:"\u7ACB\u610F\u4E0E\u4EF7\u503C\u5224\u65AD",max:2,earned:Math.min(abiA.val,2)}]}
   ];
   res.dimensionScores=dims;
   var total=0;for(var i=0;i<dims.length;i++)total+=dims[i].earned;
   res.earnedScore=Math.min(total,totalScore);
-  var r=res.earnedScore/totalScore;
-  res.level=r>=0.85?"优秀":r>=0.7?"良好":r>=0.5?"合格":"待提高";
-  res.feedback.push("📊 整体评级："+res.level);
-  res.feedback.push("📐 广州中考标准：情境运用"+ds.s+"分 + 知识点运用"+ds.k+"分 + 能力维度"+ds.a+"分 = "+(ds.s+ds.k+ds.a)+"分");
+  var lv=getEssayLevel(res.earnedScore,totalScore);
+  res.level=lv.l;
+  res._levelInfo=lv;
+
+  res.feedback.push("\uD83D\uDCCA \u8BC4\u5B9A\u7B49\u7EA7\uFF1A<b style='color:"+lv.lColor+"'>"+lv.l+"</b>（"+lv.desc+"）"+lv.lRange);
+  res.feedback.push("\uD83D\uDCCC \u5E7F\u5DDE\u4E2D\u8003\u5206\u6863\u8BC4\u5206\uFF1A\u60C5\u5883\u5206\u6790"+ds.s+"\u5206 + \u77E5\u8BC6\u5E94\u7528"+ds.k+"\u5206 + \u7EFC\u5408\u80FD\u529B"+ds.a+"\u5206 = "+(ds.s+ds.k+ds.a)+"\u5206");
   for(var i=0;i<dims.length;i++){
-    var d=dims[i],ic=d.ratio>=70?"✅":d.ratio>=50?"📝":"❌";
-    res.feedback.push(ic+" "+d.name+"（"+d.earned+"/"+d.max+"分，"+d.ratio+"%）："+d.comment);
+    var d=dims[i],ic=d.ratio>=70?"\u2705":d.ratio>=50?"\uD83D\uDCDD":"\u274C";
+    res.feedback.push(ic+" "+d.name+"\uFF08"+d.earned+"/"+d.max+"\u5206\uFF0C"+d.ratio+"%\uFF09\uFF1A"+d.comment);
   }
-  if(sitA.score<Math.ceil(ds.s*0.7))res.suggestions.push("情境运用提升：每个分析段落都要引用材料具体信息，用'材料中……体现了……'建立对应");
-  if(knoA.div<2)res.suggestions.push("知识点多样性：尝试从多个知识板块（法治、创新、生态、文化等）选取知识点");
-  if(knoA.comp<2)res.suggestions.push("知识点完整性：用完整学科语言表述，如'创新是引领发展的第一动力'");
-  if(abiA.str<2)res.suggestions.push("结构建议：采用'引材料→析知识→做总结'三段式写法");
-  if(abiA.lang<2)res.suggestions.push("语言建议：使用逻辑关联词（因为……所以……、首先……其次……）增强层次感");
-  if(a.length<200)res.suggestions.push("篇幅提示：小作文建议不少于200字");
+  if(sitE<Math.ceil(ds.s*0.7))res.suggestions.push("\u60C5\u5883\u5206\u6790\u63D0\u5347\uFF1A\u6BCF\u4E2A\u5206\u6790\u6BB5\u843D\u90FD\u8981\u5F15\u7528\u6750\u6599\u5177\u4F53\u4FE1\u606F\uFF0C\u7528'\u6750\u6599\u4E2D\u2026\u2026\u4F53\u73B0\u4E86\u2026\u2026'\u5EFA\u7ACB\u5BF9\u5E94");
+  if(knoA.div<2)res.suggestions.push("\u77E5\u8BC6\u591A\u6837\u6027\uFF1A\u5C1D\u8BD5\u4ECE\u591A\u4E2A\u77E5\u8BC6\u677F\u5757\uFF08\u6CD5\u6CBB\u3001\u521B\u65B0\u3001\u751F\u6001\u3001\u6587\u5316\u7B49\uFF09\u9009\u53D6\u77E5\u8BC6\u70B9");
+  if(knoA.comp<2)res.suggestions.push("\u77E5\u8BC6\u70B9\u5B8C\u6574\u6027\uFF1A\u7528\u5B8C\u6574\u5B66\u79D1\u8BED\u8A00\u8868\u8FF0\uFF0C\u5982'\u521B\u65B0\u662F\u5F15\u9886\u53D1\u5C55\u7684\u7B2C\u4E00\u52A8\u529B'");
+  if(abiA.str<2)res.suggestions.push("\u7ED3\u6784\u5EFA\u8BAE\uFF1A\u91C7\u7528'\u5F15\u6750\u6599\u2192\u6790\u77E5\u8BC6\u2192\u505A\u603B\u7ED3'\u4E09\u6BB5\u5F0F\u5199\u6CD5");
+  if(abiA.lang<2)res.suggestions.push("\u8BED\u8A00\u5EFA\u8BAE\uFF1A\u4F7F\u7528\u903B\u8F91\u5173\u8054\u8BCD\uFF08\u56E0\u4E3A\u2026\u2026\u6240\u4EE5\u2026\u2026\u3001\u9996\u5148\u2026\u2026\u5176\u6B21\u2026\u2026\uFF09\u589E\u5F3A\u5C42\u6B21\u611F");
+  if(a.length<200)res.suggestions.push("\u7BC7\u5E45\u63D0\u793A\uFF1A\u5C0F\u4F5C\u6587\u5EFA\u8BAE\u4E0D\u5C11\u4E8E200\u5B57");
   return res;
 }
 
@@ -719,13 +772,22 @@ function gradeEssayCustom(answer,cRef,material,totalScore){
   var stdKws=extractKwFromPoint(cRef.customAnswer||"");
   var matchedKws=softMatchList(lower,stdKws);
   var answerRatio=stdKws.length>0?matchedKws.length/stdKws.length:0;
-  var matKws=extractMaterialKeywords(material),matUsed=softMatchList(lower,matKws);
-  var matRatio=matKws.length>0?matUsed.length/matKws.length:0;
+
+  /* ── 维度一：情境分析 ── */
+  var matKws=extractMaterialKeywords(material),matUsed=softMatchList(lower,matKws),matRatio=matKws.length>0?matUsed.length/matKws.length:0;
   var sitLinks=["材料","体现","说明","反映","表明","例如","可见"];
   var slc=0;for(var i=0;i<sitLinks.length;i++){if(lower.indexOf(sitLinks[i])>=0)slc++;}
-  var sitRatio=matRatio>=0.3?(slc>=2?1:0.75):matRatio>=0.15?0.5:0.25;
+  var sitR=matRatio>=0.3?(slc>=2?0.85:slc>=1?0.6:0.4):matRatio>=0.15?0.3:0.15;
+  var sitE=Math.round(ds.s*sitR);
+  var sitDesc=sitR>=0.7?"信息整理准确、完整、结构化":sitR>=0.5?"信息整理较准确、较完整":sitR>=0.3?"信息整理欠准确完整":"信息整理不准确、缺乏关键信息";
+
+  /* ── 维度二：知识应用 ── */
   var proTerms=extractProTerms(lower);
   var knowRatio=Math.min(proTerms.length/4,1)*0.85+(proTerms.length>0?0.15:0);
+  var knoE=Math.round(ds.k*knowRatio);
+  var knoDesc=knowRatio>=0.7?"准确、灵活、综合调用答题所需知识":knowRatio>=0.5?"较为全面准确地调用知识":knowRatio>=0.3?"较少调用知识，结合简单":"极少调用知识，多为无关内容";
+
+  /* ── 维度三：综合能力 ── */
   var hasI=a.length>50&&(lower.indexOf("材料")>=0||lower.indexOf("体现")>=0||lower.indexOf("说明")>=0);
   var hasC=lower.indexOf("综上")>=0||lower.indexOf("因此")>=0||lower.indexOf("总之")>=0||lower.indexOf("总结")>=0;
   var hasB=a.length>150;
@@ -737,37 +799,41 @@ function gradeEssayCustom(answer,cRef,material,totalScore){
   var vw=["正确","积极","应该","弘扬","践行","树立"];
   var vwCount=0;for(var i=0;i<vw.length;i++){if(lower.indexOf(vw[i])>=0)vwCount++;}
   var hasValue=vwCount>=2;
-  var abiRatio=structRatio*0.4+langRatio*0.4+(hasValue?0.2:0);
+  var insp=["我们","作为","贡献","力量","责任","青少年"];
+  var inspH=0;for(var i=0;i<insp.length;i++){if(lower.indexOf(insp[i])>=0)inspH++;}
+  var valRatio=hasValue?(inspH>=2?1:0.7):0.3;
+  var abiRatio=structRatio*0.35+langRatio*0.35+valRatio*0.3;
+  var abiE=Math.round(ds.a*abiRatio);
+  var abiDesc=abiRatio>=0.7?"立意高远、结构严谨、语言规范":abiRatio>=0.5?"有一定立意、结构较严谨":abiRatio>=0.3?"立意不高、结构性弱":"立意低，结构混乱";
+
+  /* ── 自定义标准契合度 ── */
   var critRatio=0.5;
   if(cRef.customCriteria){var ck=extractKwFromPoint(cRef.customCriteria);var cm=ck.filter(function(k){return lower.indexOf(k)>=0;});critRatio=ck.length>0?Math.min(cm.length/ck.length,1):0.5;}
-  var halfS=Math.round(ds.s*0.5),ceilS2=Math.ceil(ds.s*0.5);
-  var ceilA40a=Math.ceil(ds.a*0.4),ceilA40b=Math.ceil(ds.a*0.4);
-  var maxVal=Math.max(1,ds.a-ceilA40a-ceilA40b);
+
   var dims=[
-    {name:"标准答案契合度",max:halfS,earned:Math.round(halfS*answerRatio),ratio:Math.round(answerRatio*100),comment:answerRatio>=0.6?"与标准答案高度契合（匹配"+matchedKws.length+"个关键词）":"与标准答案差距较大"},
-    {name:"情境运用",max:ceilS2,earned:Math.round(ceilS2*sitRatio),ratio:Math.round(sitRatio*100),comment:sitRatio>=0.7?"能有效运用材料":"材料运用不足"},
-    {name:"知识点运用",max:ds.k,earned:Math.round(ds.k*knowRatio),ratio:Math.round(knowRatio*100),comment:knowRatio>=0.6?"运用了"+proTerms.join("、")+"等":"专业术语不足"},
-    {name:"结构逻辑",max:ceilA40a,earned:Math.round(ceilA40a*structRatio),ratio:Math.round(structRatio*100),comment:structRatio>=0.7?"结构完整":"结构不完整"},
-    {name:"语言表达",max:ceilA40b,earned:Math.round(ceilA40b*langRatio),ratio:Math.round(langRatio*100),comment:langRatio>=0.7?"表达清晰":"需加强逻辑表达"},
-    {name:"价值判断",max:maxVal,earned:Math.round(maxVal*(hasValue?1:0.3)),ratio:Math.round((hasValue?1:0.3)*100),comment:hasValue?"价值导向正确":"需加强正确价值导向"}
+    {name:"\u60C5\u5883\u5206\u6790",max:ds.s,earned:sitE,ratio:Math.round(sitR*100),comment:sitDesc},
+    {name:"\u77E5\u8BC6\u5E94\u7528",max:ds.k,earned:knoE,ratio:Math.round(knowRatio*100),comment:knoDesc},
+    {name:"\u7EFC\u5408\u80FD\u529B",max:ds.a,earned:abiE,ratio:Math.round(abiRatio*100),comment:abiDesc}
   ];
   if(cRef.customCriteria){
     var extraMax=Math.min(2,Math.round(totalScore*0.15));
-    dims.push({name:"评分标准细则",max:extraMax,earned:Math.round(extraMax*critRatio),ratio:Math.round(critRatio*100),comment:critRatio>=0.7?"符合评分细则":"部分细则未满足"});
+    dims.push({name:"\u8BC4\u5206\u6807\u51C6\u7EC6\u5219",max:extraMax,earned:Math.round(extraMax*critRatio),ratio:Math.round(critRatio*100),comment:critRatio>=0.7?"\u7B26\u5408\u8BC4\u5206\u7EC6\u5219":"\u90E8\u5206\u7EC6\u5219\u672A\u6EE1\u8DB3"});
   }
+  res.dimensionScores=dims;
   var total=0;for(var i=0;i<dims.length;i++)total+=dims[i].earned;
   res.earnedScore=Math.min(total,totalScore);
-  var r=res.earnedScore/totalScore;
-  res.level=r>=0.85?"优秀":r>=0.7?"良好":r>=0.5?"合格":"待提高";
-  res.dimensionScores=dims;
-  res.feedback.push("📊 整体评级："+res.level+"（按自定义标准批改）");
+  var lv=getEssayLevel(res.earnedScore,totalScore);
+  res.level=lv.l;
+  res._levelInfo=lv;
+
+  res.feedback.push("\uD83D\uDCCA \u8BC4\u5B9A\u7B49\u7EA7\uFF1A<b style='color:"+lv.lColor+"'>"+lv.l+"</b>（"+lv.desc+"）"+lv.lRange+"\uFF08\u6309\u81EA\u5B9A\u4E49\u6807\u51C6\u6279\u6539\uFF09");
   for(var i=0;i<dims.length;i++){
-    var d=dims[i],ic=d.ratio>=70?"✅":d.ratio>=50?"📝":"❌";
-    res.feedback.push(ic+" "+d.name+"（"+d.earned+"/"+d.max+"分，"+d.ratio+"%）："+d.comment);
+    var d=dims[i],ic=d.ratio>=70?"\u2705":d.ratio>=50?"\uD83D\uDCDD":"\u274C";
+    res.feedback.push(ic+" "+d.name+"\uFF08"+d.earned+"/"+d.max+"\u5206\uFF0C"+d.ratio+"%\uFF09\uFF1A"+d.comment);
   }
-  if(structRatio<0.7)res.suggestions.push("结构建议：采用'引材料→析知识→做总结'三段式写法");
-  if(sitRatio<0.6)res.suggestions.push("材料运用：每个分析段落都要引用或呼应材料内容");
-  if(answerRatio<0.6)res.suggestions.push("答案内容：请参考标准答案，补充缺失的关键表述");
+  if(structRatio<0.7)res.suggestions.push("\u7ED3\u6784\u5EFA\u8BAE\uFF1A\u91C7\u7528'\u5F15\u6750\u6599\u2192\u6790\u77E5\u8BC6\u2192\u505A\u603B\u7ED3'\u4E09\u6BB5\u5F0F\u5199\u6CD5");
+  if(sitR<0.6)res.suggestions.push("\u6750\u6599\u8FD0\u7528\uFF1A\u6BCF\u4E2A\u5206\u6790\u6BB5\u843D\u90FD\u8981\u5F15\u7528\u6216\u547C\u5E94\u6750\u6599\u5185\u5BB9");
+  if(answerRatio<0.6)res.suggestions.push("\u7B54\u6848\u5185\u5BB9\uFF1A\u8BF7\u53C2\u8003\u6807\u51C6\u7B54\u6848\uFF0C\u8865\u5145\u7F3A\u5931\u7684\u5173\u952E\u8868\u8FF0");
   return res;
 }
 
@@ -783,7 +849,7 @@ function switchType(type){
   }
   document.getElementById("shortStdSection").style.display=type==="shortAnswer"?"block":"none";
   document.getElementById("essayStdSection").style.display=type==="essay"?"block":"none";
-  document.getElementById("totalScore").value=type==="essay"?14:6;
+  document.getElementById("totalScore").value=type==="essay"?15:6;
   document.getElementById("matRatioRow").style.display=type==="essay"?"none":"flex";
   updateStdTotal();
   updateScoreHint();
@@ -794,7 +860,7 @@ function updateScoreHint(){
   var hintEl=document.getElementById("scoreHint");
   if(currentType==="essay"){
     var ds=getEssayDS(v);
-    hintEl.textContent="\uD83D\uDCA1 小作文"+v+"分制：情境"+ds.s+"分 + 知识点"+ds.k+"分 + 能力"+ds.a+"分";
+    hintEl.textContent="\uD83D\uDCA1 \u5C0F\u4F5C\u6587\u5206\u6863\u8BC4\u5206"+v+"\u5206\uFF1A\u60C5\u5883\u5206\u6790"+ds.s+"\u5206 + \u77E5\u8BC6\u5E94\u7528"+ds.k+"\u5206 + \u7EFC\u5408\u80FD\u529B"+ds.a+"\u5206";
   }else{
     var mr=parseInt(document.getElementById("matRatio").value)||40;
     var kr=100-mr;
@@ -1000,7 +1066,7 @@ function renderReport(report,kps){
       h+='</div>';
     }
   }else{
-    h+='<div class="detail-section"><h4><i class="fas fa-chart-bar" style="color:var(--primary)"></i> 维度评分（广州中考标准）</h4>';
+    h+='<div class="detail-section"><h4><i class="fas fa-chart-bar" style="color:var(--primary)"></i> \u7EF4\u5EA6\u8BC4\u5206\uFF08\u5E7F\u5DDE\u4E2D\u8003\u5206\u6863\u5236\uFF09</h4>';
     h+='<div class="dim-summary">';
     var dimMap={sit:"sit",kno:"kno",abi:"abi"};
     var dims=grading.dimensionScores||[];
@@ -1069,7 +1135,7 @@ function renderReport(report,kps){
       }
       if(st&&st.conclusion)h+='<div class="essay-part"><div class="essay-part-header"><span class="part-title">🎯 总结（结尾）</span></div><p style="font-size:13px;color:var(--gray-500)">'+st.conclusion.desc+'</p><p style="font-size:13px;color:var(--gray-500);margin-top:6px;padding:8px;background:var(--gray-50);border-radius:6px">示例：'+st.conclusion.example+'</p></div>';
       var ds2=reference&&reference.ds?reference.ds:getEssayDS(parseInt(document.getElementById("totalScore").value)||14);
-      h+='<div style="padding:12px 16px;border-radius:8px;background:#fffbeb;border:1px solid #fde68a;font-size:12px;color:#92400e"><strong>📐 广州中考小作文评分标准说明：</strong>情境运用'+ds2.s+'分 + 知识点运用'+ds2.k+'分 + 能力维度'+ds2.a+'分 = '+(ds2.s+ds2.k+ds2.a)+'分（含1分附加/书写分由人工评定）</div>';
+      h+='<div style="padding:12px 16px;border-radius:8px;background:#fffbeb;border:1px solid #fde68a;font-size:12px;color:#92400e"><strong>\uD83D\uDCCC \u5E7F\u5DDE\u4E2D\u8003\u5C0F\u4F5C\u6587\u5206\u6863\u8BC4\u5206\u6807\u51C6\uFF1A</strong><br>\u6C34\u5E73\u56DB\uFF1A'+Math.ceil((ds2.s+ds2.k+ds2.a)*0.8)+'\u2013'+(ds2.s+ds2.k+ds2.a)+'\u5206\uFF08\u4F18\u79C0\uFF09\u00B7 \u6C34\u5E73\u4E09\uFF1A'+Math.ceil((ds2.s+ds2.k+ds2.a)*0.53)+'\u2013'+Math.ceil((ds2.s+ds2.k+ds2.a)*0.8-1)+'\u5206\uFF08\u826F\u597D\uFF09\u00B7 \u6C34\u5E73\u4E8C\uFF1A'+Math.ceil((ds2.s+ds2.k+ds2.a)*0.27)+'\u2013'+Math.ceil((ds2.s+ds2.k+ds2.a)*0.53-1)+'\u5206\uFF08\u53CA\u683C\uFF09\u00B7 \u6C34\u5E73\u4E00\uFF1A0\u2013'+Math.ceil((ds2.s+ds2.k+ds2.a)*0.27-1)+'\u5206<br>\u4E09\u7EF4\u5EA6\uFF1A\u60C5\u5883\u5206\u6790'+ds2.s+'\u5206 + \u77E5\u8BC6\u5E94\u7528'+ds2.k+'\u5206 + \u7EFC\u5408\u80FD\u529B'+ds2.a+'\u5206 = '+(ds2.s+ds2.k+ds2.a)+'\u5206</div>';
     }
     h+='</div>';
   }
