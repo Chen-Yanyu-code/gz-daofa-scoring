@@ -223,9 +223,8 @@ textarea.tall{min-height:160px}
             <label>题目分值 <span class="required">*</span></label>
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
               <div class="score-row"><input type="number" id="totalScore" value="6" min="2" max="20" onchange="updateStdTotal();updateScoreHint()"><span>分</span></div>
-              <div class="score-row" id="matRatioRow" style="padding-left:12px;border-left:2px solid var(--gray-200)"><input type="number" id="matRatio" value="40" min="0" max="100" step="5" onchange="updateScoreHint();updateCustomRefs()" style="width:72px"><span>% 材料分</span></div>
             </div>
-            <div style="font-size:11px;color:var(--gray-500);margin-top:4px" id="scoreHint">&#x1F4A1; 简答题建议6-8分 &#xB7; 小作文默认15分（分档评分：水平四12-15/三8-11/二4-7/一0-3）</div>
+            <div style="font-size:11px;color:var(--gray-500);margin-top:4px" id="scoreHint">&#x1F4A1; 简答题建议6-8分 &#xB7; 小作文默认15分（分档评分：水平四12-15/三8-11/二4-7/一0-3）&#xB7; 每个得分点可单独设置材料分占比</div>
           </div>
           <div class="form-group">
             <label>给定材料 <span class="required">*</span></label>
@@ -575,7 +574,7 @@ function checkMaterialUsage(answer,material){
 function escHtml(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 /* === 简答题引擎 === */
-function getMatRatio(){return(parseInt(document.getElementById("matRatio").value)||40)/100;}
+function getMatRatio(){return 0.4;} /* 默认40%，逐点覆盖时使用各点自身设置 */
 
 function genShortRef(question,material,totalScore,kps){
   var ptCount=Math.max(2,Math.floor(totalScore/2));
@@ -870,7 +869,6 @@ function switchType(type){
   document.getElementById("shortStdSection").style.display=type==="shortAnswer"?"block":"none";
   document.getElementById("essayStdSection").style.display=type==="essay"?"block":"none";
   document.getElementById("totalScore").value=type==="essay"?15:6;
-  document.getElementById("matRatioRow").style.display=type==="essay"?"none":"flex";
   updateStdTotal();
   updateScoreHint();
 }
@@ -882,9 +880,7 @@ function updateScoreHint(){
     var ds=getEssayDS(v);
     hintEl.textContent="\uD83D\uDCA1 \u5C0F\u4F5C\u6587\u5206\u6863\u8BC4\u5206"+v+"\u5206\uFF1A\u60C5\u5883\u5206\u6790"+ds.s+"\u5206 + \u77E5\u8BC6\u5E94\u7528"+ds.k+"\u5206 + \u7EFC\u5408\u80FD\u529B"+ds.a+"\u5206";
   }else{
-    var mr=parseInt(document.getElementById("matRatio").value)||40;
-    var kr=100-mr;
-    hintEl.textContent="\uD83D\uDCA1 简答题"+v+"分 · 每个得分点=知识点("+kr+"%)+材料结合("+mr+"%)";
+    hintEl.textContent="\uD83D\uDCA1 简答题"+v+"分 · 每个得分点可单独设置材料分占比（默认40%）";
   }
 }
 
@@ -892,7 +888,7 @@ function toggleStdAnswer(){
   document.getElementById("stdToggle").classList.toggle("open");
   document.getElementById("stdBody").classList.toggle("open");
 }
-function addStdPoint(p,s){stdPoints.push({point:p||"",score:s||2});renderStdPoints();}
+function addStdPoint(p,s,mr){stdPoints.push({point:p||"",score:s||2,matRatio:mr!=null?mr:""});renderStdPoints();}
 function removeStdPoint(i){stdPoints.splice(i,1);renderStdPoints();}
 function renderStdPoints(){
   var list=document.getElementById("stdPointsList");
@@ -901,10 +897,13 @@ function renderStdPoints(){
     var h="";
     for(var i=0;i<stdPoints.length;i++){
       var p=stdPoints[i];
+      var mrVal=p.matRatio!=null&&p.matRatio!==""?p.matRatio:"";
       h+='<div class="scoring-row"><span class="scoring-idx">'+(i+1)+'</span>';
-      h+='<input type="text" value="'+escHtml(p.point)+'" placeholder="得分点..." oninput="stdPoints['+i+'].point=this.value">';
-      h+='<input type="number" value="'+p.score+'" min="1" max="10" onchange="stdPoints['+i+'].score=parseInt(this.value)||1;updateStdTotal()">';
+      h+='<input type="text" value="'+escHtml(p.point)+'" placeholder="得分点..." oninput="stdPoints['+i+'].point=this.value" style="flex:1">';
+      h+='<input type="number" value="'+p.score+'" min="1" max="10" onchange="stdPoints['+i+'].score=parseInt(this.value)||1;updateStdTotal()" style="width:52px">';
       h+='<span style="font-size:12px;color:var(--gray-500)">分</span>';
+      h+='<input type="number" value="'+mrVal+'" min="0" max="100" step="5" placeholder="40" title="材料分占比%（留空默认40%）" onchange="stdPoints['+i+'].matRatio=this.value===\'\'?\'\':(parseInt(this.value)||0)" style="width:52px;border-color:#fbbf24" title="材料分%">';
+      h+='<span style="font-size:11px;color:#b45309;white-space:nowrap">%材料</span>';
       h+='<button class="remove-point" onclick="removeStdPoint('+i+')"><i class="fas fa-times"></i></button></div>';
     }
     list.innerHTML=h;
@@ -917,20 +916,18 @@ function updateStdTotal(){
   document.getElementById("stdTotalScore").textContent=total;
   document.getElementById("stdFullScore").textContent=document.getElementById("totalScore").value;
 }
-function updateCustomRefs(){
-  /* 当材料分比例变化时，更新自定义标准的kpScore/matScore显示（得分点本身分数不变） */
-}
 function hasCustomStd(){
   if(currentType==="shortAnswer"){for(var i=0;i<stdPoints.length;i++){if(stdPoints[i].point.trim())return true;}return false;}
   var el=document.getElementById("stdEssayAnswer");return el&&el.value.trim()?true:false;
 }
 function getCustomShortRef(){
-  var refs=[],mr=getMatRatio();
+  var refs=[];
   for(var i=0;i<stdPoints.length;i++){
     var p=stdPoints[i];
     if(!p.point.trim())continue;
+    var mr=(p.matRatio!==""&&p.matRatio!=null)?((parseInt(p.matRatio)||0)/100):0.4;
     var s=p.score||1,kpS=Math.ceil(s*(1-mr));
-    refs.push({point:p.point.trim(),score:s,kpScore:kpS,matScore:s-kpS,topic:"自定义标准",materialLink:""});
+    refs.push({point:p.point.trim(),score:s,kpScore:kpS,matScore:s-kpS,topic:"自定义标准",materialLink:"",matRatioPct:Math.round(mr*100)});
   }
   return refs;
 }
@@ -1055,14 +1052,14 @@ function doStdOCR(file){
           stdPoints=[];
           for(var i=0;i<cleaned.length;i++){
             var m=cleaned[i].match(sr);
-            if(m){stdPoints.push({point:cleaned[i].replace(sr,"").replace(/^\d+[\\.、\s]+/,"").trim(),score:parseInt(m[1])||1});}
-            else if(cleaned[i].length>5){stdPoints.push({point:cleaned[i].replace(/^\d+[\\.、\s]+/,"").trim(),score:2});}
+            if(m){stdPoints.push({point:cleaned[i].replace(sr,"").replace(/^\d+[\\.、\s]+/,"").trim(),score:parseInt(m[1])||1,matRatio:""});}
+            else if(cleaned[i].length>5){stdPoints.push({point:cleaned[i].replace(/^\d+[\\.、\s]+/,"").trim(),score:2,matRatio:""});}
           }
           renderStdPoints();rd.textContent="✅ 已识别"+stdPoints.length+"个得分点";rd.style.borderColor="#10b981";
         }else if(currentType==="essay"){
           document.getElementById("stdEssayAnswer").value=text;rd.textContent="✅ 已识别";rd.style.borderColor="#10b981";
         }else{
-          stdPoints=[];for(var i=0;i<Math.min(cleaned.length,10);i++){if(cleaned[i].length>5)stdPoints.push({point:cleaned[i].replace(/^\d+[\\.、\s]+/,"").trim(),score:2});}
+          stdPoints=[];for(var i=0;i<Math.min(cleaned.length,10);i++){if(cleaned[i].length>5)stdPoints.push({point:cleaned[i].replace(/^\d+[\\.、\s]+/,"").trim(),score:2,matRatio:""});}
           renderStdPoints();rd.textContent="✅ 已解析"+stdPoints.length+"个得分点";rd.style.borderColor="#10b981";
         }
       }else{rd.textContent="⚠️ 识别为空";rd.style.borderColor="#f59e0b";}
@@ -1142,7 +1139,7 @@ function renderReport(report,kps){
   var h='<div class="score-display"><div class="score-circle '+cls+'"><span>'+meta.earnedScore+'</span><span class="label">/ '+meta.totalScore+'</span></div><div class="score-meta"><span class="level '+cls+'">'+meta.level+'</span>&nbsp;&nbsp;'+meta.type+' · 得分率 '+meta.percentage+'%&nbsp;&nbsp;'+meta.timestamp+'</div></div>';
 
   if(currentType==="shortAnswer"){
-    h+='<div class="detail-section"><h4><i class="fas fa-list-check" style="color:var(--primary)"></i> 逐点评分详情（知识点'+Math.round((1-getMatRatio())*100)+'% + 材料结合'+Math.round(getMatRatio()*100)+'%）</h4>';
+    h+='<div class="detail-section"><h4><i class="fas fa-list-check" style="color:var(--primary)"></i> 逐点评分详情（知识点 + 材料结合，各点独立占比）</h4>';
     h+='<table class="detail-table"><thead><tr><th>得分点</th><th>满分</th><th>得分</th><th>状态</th><th>说明</th></tr></thead><tbody>';
     var pds=grading.pointDetails||[];
     for(var i=0;i<pds.length;i++){
@@ -1213,7 +1210,7 @@ function renderReport(report,kps){
       var rp=refs[i];
       h+='<div class="ref-point"><strong>• '+escHtml(rp.point)+'</strong><span class="ref-score">'+rp.score+'分</span>';
       if(rp.topic)h+='<span style="font-size:11px;color:var(--gray-500);margin-left:8px">['+rp.topic+']</span>';
-      if(!useC)h+='<div style="font-size:11px;color:#065f46;margin-top:4px">\u8BC4\u5206\u7EC6\u5219\uFF1A\u77E5\u8BC6\u70B9('+rp.kpScore+'\u5206\uFF0C'+Math.round((1-getMatRatio())*100)+'%) + \u6750\u6599\u7ED3\u5408('+rp.matScore+'\u5206\uFF0C'+Math.round(getMatRatio()*100)+'%)</div>';
+      if(!useC){var rpMat=rp.matRatioPct!=null?rp.matRatioPct:40;var rpKp=100-rpMat;h+='<div style="font-size:11px;color:#065f46;margin-top:4px">\u8BC4\u5206\u7EC6\u5219\uFF1A\u77E5\u8BC6\u70B9('+rp.kpScore+'\u5206\uFF0C'+rpKp+'%) + \u6750\u6599\u7ED3\u5408('+rp.matScore+'\u5206\uFF0C'+rpMat+'%)</div>';}
       if(rp.materialLink)h+='<span class="ref-material">📎 材料关联：'+escHtml(rp.materialLink)+'</span>';
       h+='</div>';
     }
@@ -1397,13 +1394,12 @@ function importToGrading(id){
     document.getElementById("question").value=q.question;
     document.getElementById("studentAnswer").value="";
     document.getElementById("totalScore").value=q.score;
-    if(q.matRatio!==undefined){document.getElementById("matRatio").value=q.matRatio;}
     if(q.type==="\u5c0f\u4f5c\u6587"){switchType("essay");}else{switchType("shortAnswer");}
     clearStdAnswer();
     if(q.standardAnswer&&q.standardAnswer.length>0){
       stdPoints=[];
       for(var i=0;i<q.standardAnswer.length;i++){
-        stdPoints.push({point:q.standardAnswer[i].point,score:q.standardAnswer[i].score});
+        stdPoints.push({point:q.standardAnswer[i].point,score:q.standardAnswer[i].score,matRatio:q.standardAnswer[i].matRatio!=null?q.standardAnswer[i].matRatio:""});
       }
       renderStdPoints();
       document.getElementById("stdToggle").classList.add("open");
